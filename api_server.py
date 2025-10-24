@@ -8,6 +8,7 @@ import json
 import time
 import smtplib
 import requests
+import os
 from email.mime.text import MimeText
 from email.mime.multipart import MimeMultipart
 from flask import Flask, jsonify, request
@@ -16,6 +17,10 @@ import paho.mqtt.client as mqtt
 import threading
 import logging
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configuration
 app = Flask(__name__)
@@ -25,24 +30,24 @@ CORS(app)
 MQTT_BROKER_HOST = "127.0.0.1"
 MQTT_BROKER_PORT = 1883
 
-# Notification Configuration
+# Notification Configuration from Environment Variables
 NOTIFICATION_CONFIG = {
     "email": {
-        "enabled": True,
-        "smtp_server": "smtp.gmail.com",  # Change to your email provider
-        "smtp_port": 587,
-        "username": "your_email@gmail.com",  # Change to your email
-        "password": "your_app_password",  # Change to your app password
-        "from_email": "your_email@gmail.com",
-        "to_email": "your_phone_number@carrier.com"  # Change to your phone's email
+        "enabled": os.getenv("EMAIL_ENABLED", "false").lower() == "true",
+        "smtp_server": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
+        "smtp_port": int(os.getenv("SMTP_PORT", "587")),
+        "username": os.getenv("EMAIL_USERNAME", ""),
+        "password": os.getenv("EMAIL_PASSWORD", ""),
+        "from_email": os.getenv("EMAIL_FROM", ""),
+        "to_email": os.getenv("EMAIL_TO", "")
     },
     "sms": {
-        "enabled": True,
-        "provider": "twilio",  # or "email_sms"
-        "twilio_account_sid": "your_twilio_sid",
-        "twilio_auth_token": "your_twilio_token",
-        "twilio_phone_number": "your_twilio_number",
-        "to_phone_number": "your_phone_number"
+        "enabled": os.getenv("SMS_ENABLED", "false").lower() == "true",
+        "provider": os.getenv("SMS_PROVIDER", "email_sms"),
+        "twilio_account_sid": os.getenv("TWILIO_ACCOUNT_SID", ""),
+        "twilio_auth_token": os.getenv("TWILIO_AUTH_TOKEN", ""),
+        "twilio_phone_number": os.getenv("TWILIO_PHONE_NUMBER", ""),
+        "to_phone_number": os.getenv("TO_PHONE_NUMBER", "")
     }
 }
 

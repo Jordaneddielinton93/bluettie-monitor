@@ -41,12 +41,14 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
 ### Installation
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/yourusername/bluetti-monitor.git
    cd bluetti-monitor
    ```
 
 2. **Run the setup script**:
+
    ```bash
    chmod +x pi-setup.sh
    ./pi-setup.sh
@@ -94,21 +96,25 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
 ## 🎨 Dashboard Sections
 
 ### Battery Status
+
 - Total battery percentage and voltage
 - Individual pack details (pack1, pack2, pack3)
 - Pack-specific percentages and voltages
 
 ### Power Output
+
 - DC output power and status
 - AC output power and status
 - Real-time power flow visualization
 
 ### Power Input
+
 - DC input power and voltage
 - AC input power
 - Power generation monitoring
 
 ### System Status
+
 - Auto sleep mode settings
 - Power off status
 - AC output mode
@@ -117,10 +123,12 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
 ## 🔌 API Endpoints
 
 ### Basic Endpoints
+
 - `GET /api/bluetti` - Returns current Bluetti data as JSON
 - `GET /dashboard` - Serves the main dashboard interface
 
 ### Advanced API Endpoints (New!)
+
 - `GET /api/bluetti/battery` - Get battery status only
 - `GET /api/bluetti/power` - Get power status only
 - `GET /api/bluetti/status` - Get device status and connection info
@@ -130,11 +138,13 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
 - `POST /api/notifications/config` - Update notification configuration
 
 ### Mobile Dashboard
+
 - `GET /mobile_dashboard.html` - Mobile-friendly dashboard interface
 
 ## 📱 Mobile Support
 
 The dashboard is fully responsive and works on:
+
 - Desktop computers
 - Tablets
 - Mobile phones
@@ -143,7 +153,9 @@ The dashboard is fully responsive and works on:
 ## 🌐 Remote Access & Notifications
 
 ### API Server Setup
+
 1. **Install the API server**:
+
    ```bash
    ./setup_api_server.sh
    ```
@@ -155,7 +167,9 @@ The dashboard is fully responsive and works on:
    - Mobile Dashboard: `http://your-pi-ip:8083/mobile_dashboard.html`
 
 ### Smart Notifications
+
 The system automatically sends alerts when battery reaches:
+
 - **100%** - "Battery FULL!"
 - **50%** - "Battery at 50%"
 - **30%** - "Battery at 30%" (with charging status warning)
@@ -164,13 +178,21 @@ The system automatically sends alerts when battery reaches:
 - **5%** - "Battery at 5%" (CRITICAL: Extremely low battery!)
 
 ### Notification Methods
+
 - **Email**: Gmail, Outlook, Yahoo, or custom SMTP
 - **SMS**: Email-to-SMS (free) or Twilio (paid)
 - **Smart Alerts**: Only warn about charging if power input is 0W
 
+### Quick Setup
+1. **Run the setup script**: `./setup_api_server.sh`
+2. **Configure notifications**: `./setup_twilio.sh` (for SMS)
+3. **Edit your `.env` file** with your credentials
+4. **Test notifications**: Use the API test endpoints
+
 ## 🛠️ Troubleshooting
 
 ### Service Not Starting
+
 ```bash
 # Check service status
 sudo systemctl status bluetti-monitor.service
@@ -180,6 +202,7 @@ sudo journalctl -u bluetti-monitor.service -f
 ```
 
 ### Bluetooth Issues
+
 ```bash
 # Enable Bluetooth
 sudo systemctl enable bluetti
@@ -190,6 +213,7 @@ sudo systemctl status bluetti
 ```
 
 ### MQTT Issues
+
 ```bash
 # Check MQTT broker
 sudo systemctl status mosquitto
@@ -201,11 +225,13 @@ sudo systemctl restart mosquitto
 ## 📋 Requirements
 
 ### Hardware
+
 - Raspberry Pi (Zero W, 3B+, 4B, or newer)
 - Bluetti AC200M power station
 - SD card (8GB minimum)
 
 ### Software
+
 - Raspberry Pi OS
 - Python 3.7+
 - Node.js 16+ (for React development)
@@ -220,10 +246,12 @@ sudo systemctl restart mosquitto
 ## 📝 Configuration
 
 ### Bluetti Device
+
 - Update the MAC address in `start_bluetti_monitor.sh`
 - Default: `00:15:83:82:0B:B1`
 
 ### Network Settings
+
 - Update IP addresses in service files if needed
 - Default port: 8082
 
@@ -248,6 +276,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 If you encounter any issues:
+
 1. Check the troubleshooting section
 2. Review the service logs
 3. Open an issue on GitHub

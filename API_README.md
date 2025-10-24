@@ -16,12 +16,14 @@ This API server provides REST endpoints for accessing your Bluetti data remotely
 ## 🔧 Installation
 
 1. **Run the setup script:**
+
    ```bash
    chmod +x setup_api_server.sh
    ./setup_api_server.sh
    ```
 
 2. **Configure notifications** (edit `notification_config.json`):
+
    ```json
    {
      "email": {
@@ -44,31 +46,37 @@ This API server provides REST endpoints for accessing your Bluetti data remotely
 ## 🌐 API Endpoints
 
 ### Get All Data
+
 ```
 GET http://your-pi-ip:8083/api/bluetti
 ```
 
 ### Get Battery Status Only
+
 ```
 GET http://your-pi-ip:8083/api/bluetti/battery
 ```
 
 ### Get Power Status Only
+
 ```
 GET http://your-pi-ip:8083/api/bluetti/power
 ```
 
 ### Get Device Status
+
 ```
 GET http://your-pi-ip:8083/api/bluetti/status
 ```
 
 ### Health Check
+
 ```
 GET http://your-pi-ip:8083/api/health
 ```
 
 ### Test Notifications
+
 ```
 POST http://your-pi-ip:8083/api/notifications/test
 Content-Type: application/json
@@ -81,6 +89,7 @@ Content-Type: application/json
 ## 📱 Mobile Dashboard
 
 Access the mobile-friendly dashboard at:
+
 ```
 http://your-pi-ip:8083/mobile_dashboard.html
 ```
@@ -90,6 +99,7 @@ http://your-pi-ip:8083/mobile_dashboard.html
 ### Battery Level Alerts
 
 The system automatically sends notifications when the battery reaches these levels:
+
 - **100%** - "Battery FULL!"
 - **50%** - "Battery at 50%"
 - **30%** - "Battery at 30%" (with charging status warning)
@@ -106,11 +116,13 @@ The system automatically sends notifications when the battery reaches these leve
 ## 📧 Email Setup
 
 ### Gmail Setup
+
 1. Enable 2-factor authentication
 2. Generate an App Password
 3. Use your email and app password in the config
 
 ### Other Email Providers
+
 - **Outlook**: `smtp-mail.outlook.com:587`
 - **Yahoo**: `smtp.mail.yahoo.com:587`
 - **Custom SMTP**: Update server and port in config
@@ -118,13 +130,16 @@ The system automatically sends notifications when the battery reaches these leve
 ## 📱 SMS Setup
 
 ### Option 1: Email-to-SMS (Free)
+
 Use your carrier's email gateway:
+
 - **Verizon**: `your_phone_number@vtext.com`
 - **AT&T**: `your_phone_number@txt.att.net`
 - **T-Mobile**: `your_phone_number@tmomail.net`
 - **Sprint**: `your_phone_number@messaging.sprintpcs.com`
 
 ### Option 2: Twilio (Paid)
+
 1. Create a Twilio account
 2. Get your Account SID and Auth Token
 3. Purchase a phone number
@@ -133,6 +148,7 @@ Use your carrier's email gateway:
 ## 🔧 Configuration
 
 ### Notification Config (`notification_config.json`)
+
 ```json
 {
   "email": {
@@ -157,11 +173,13 @@ Use your carrier's email gateway:
 ## 🚀 Usage Examples
 
 ### Check Battery Status from Phone
+
 ```bash
 curl http://your-pi-ip:8083/api/bluetti/battery
 ```
 
 ### Test Notifications
+
 ```bash
 curl -X POST http://your-pi-ip:8083/api/notifications/test \
   -H "Content-Type: application/json" \
@@ -169,7 +187,9 @@ curl -X POST http://your-pi-ip:8083/api/notifications/test \
 ```
 
 ### Mobile Dashboard
+
 Open in your phone's browser:
+
 ```
 http://your-pi-ip:8083/mobile_dashboard.html
 ```
@@ -177,21 +197,25 @@ http://your-pi-ip:8083/mobile_dashboard.html
 ## 🔍 Troubleshooting
 
 ### Check API Server Status
+
 ```bash
 sudo systemctl status bluetti-api
 ```
 
 ### View API Server Logs
+
 ```bash
 sudo journalctl -u bluetti-api -f
 ```
 
 ### Test API Endpoints
+
 ```bash
 curl http://your-pi-ip:8083/api/health
 ```
 
 ### Check Notification Config
+
 ```bash
 curl http://your-pi-ip:8083/api/notifications/config
 ```
@@ -199,6 +223,7 @@ curl http://your-pi-ip:8083/api/notifications/config
 ## 📊 Data Format
 
 ### Battery Status Response
+
 ```json
 {
   "total_battery_percent": "47",
@@ -210,6 +235,7 @@ curl http://your-pi-ip:8083/api/notifications/config
 ```
 
 ### Power Status Response
+
 ```json
 {
   "ac_output_power": "0",
@@ -239,6 +265,7 @@ curl http://your-pi-ip:8083/api/notifications/config
 ## 📞 Support
 
 If you encounter issues:
+
 1. Check the API server logs
 2. Verify your notification configuration
 3. Test the API endpoints manually

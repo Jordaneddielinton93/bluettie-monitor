@@ -7,7 +7,7 @@ echo "🚀 Setting up Bluetti Monitor API Server..."
 
 # Install required Python packages
 echo "📦 Installing required Python packages..."
-pip3 install flask flask-cors requests twilio
+pip3 install flask flask-cors requests twilio python-dotenv
 
 # Make the API server executable
 chmod +x api_server.py
