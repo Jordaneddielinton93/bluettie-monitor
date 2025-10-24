@@ -52,7 +52,7 @@ NOTIFICATION_CONFIG = {
 }
 
 # Battery level thresholds
-BATTERY_THRESHOLDS = [100, 50, 30, 15, 10, 5]
+BATTERY_THRESHOLDS = [100, 50, 40, 39, 30, 15, 10, 5]
 NOTIFICATION_COOLDOWN = 300  # 5 minutes between notifications for same level
 
 # Global data storage
