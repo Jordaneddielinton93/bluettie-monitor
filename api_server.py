@@ -170,21 +170,28 @@ class MQTTHandler:
         try:
             config = NOTIFICATION_CONFIG["email"]
             
-            msg = MimeMultipart()
-            msg['From'] = config["from_email"]
-            msg['To'] = config["to_email"]
-            msg['Subject'] = f"Bluetti Battery Alert - {battery_percent}%"
-            
-            msg.attach(MimeText(message, 'plain'))
+            # Split email addresses if multiple are provided
+            email_addresses = [email.strip() for email in config["to_email"].split(',')]
             
             server = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
             server.starttls()
             server.login(config["username"], config["password"])
-            text = msg.as_string()
-            server.sendmail(config["from_email"], config["to_email"], text)
-            server.quit()
             
-            logger.info("Email notification sent successfully")
+            # Send to each email address separately
+            for email_address in email_addresses:
+                msg = MimeMultipart()
+                msg['From'] = config["from_email"]
+                msg['To'] = email_address
+                msg['Subject'] = f"🔋 {battery_percent}% - Bluetti AC200M Battery Alert"
+                
+                msg.attach(MimeText(message, 'plain'))
+                
+                text = msg.as_string()
+                server.sendmail(config["from_email"], email_address, text)
+                logger.info(f"Email notification sent to {email_address}")
+            
+            server.quit()
+            logger.info("Email notifications sent successfully to all recipients")
             
         except Exception as e:
             logger.error(f"Error sending email notification: {e}")

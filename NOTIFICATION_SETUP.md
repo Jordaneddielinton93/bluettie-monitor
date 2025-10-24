@@ -65,6 +65,7 @@ EMAIL_TO=your_phone_number@carrier.com
 ### Step 3: Configure SMS
 
 #### For Twilio:
+
 ```bash
 # SMS Configuration
 SMS_ENABLED=true
@@ -76,6 +77,7 @@ TO_PHONE_NUMBER=+1234567890
 ```
 
 #### For Email-to-SMS:
+
 ```bash
 # SMS Configuration
 SMS_ENABLED=true
@@ -119,11 +121,13 @@ curl http://localhost:8083/api/notifications/config
 ### Common Issues
 
 1. **Email not sending**:
+
    - Check your SMTP settings
    - Verify your app password
    - Ensure 2FA is enabled
 
 2. **SMS not sending**:
+
    - Check your Twilio credentials
    - Verify phone number format (+1234567890)
    - Ensure your Twilio account has credit

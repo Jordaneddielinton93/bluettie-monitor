@@ -184,6 +184,7 @@ The system automatically sends alerts when battery reaches:
 - **Smart Alerts**: Only warn about charging if power input is 0W
 
 ### Quick Setup
+
 1. **Run the setup script**: `./setup_api_server.sh`
 2. **Configure notifications**: `./setup_twilio.sh` (for SMS)
 3. **Edit your `.env` file** with your credentials
