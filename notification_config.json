@@ -1,0 +1,31 @@
+{
+  "email": {
+    "enabled": true,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "username": "your_email@gmail.com",
+    "password": "your_app_password",
+    "from_email": "your_email@gmail.com",
+    "to_email": "your_phone_number@carrier.com"
+  },
+  "sms": {
+    "enabled": true,
+    "provider": "email_sms",
+    "twilio_account_sid": "your_twilio_sid",
+    "twilio_auth_token": "your_twilio_token",
+    "twilio_phone_number": "your_twilio_number",
+    "to_phone_number": "your_phone_number"
+  },
+  "battery_thresholds": [100, 50, 30, 15, 10, 5],
+  "notification_cooldown": 300,
+  "carrier_email_gateways": {
+    "verizon": "@vtext.com",
+    "att": "@txt.att.net",
+    "tmobile": "@tmomail.net",
+    "sprint": "@messaging.sprintpcs.com",
+    "us_cellular": "@email.uscc.net",
+    "cricket": "@sms.cricketwireless.net",
+    "boost": "@smsmyboostmobile.com",
+    "metropcs": "@mymetropcs.com"
+  }
+}

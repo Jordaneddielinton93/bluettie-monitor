@@ -13,6 +13,12 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
 - **System Status**: Complete system status monitoring
 - **MQTT Integration**: Uses bluetti-mqtt tool for Bluetooth communication
 - **HTTP API**: Simple REST API for data access
+- **🌐 Remote API**: REST API endpoints for remote access
+- **📱 Mobile Dashboard**: Mobile-friendly web interface
+- **🔔 Smart Notifications**: Email and SMS alerts for battery levels
+- **📧 Email Alerts**: Automatic email notifications at battery thresholds
+- **📱 SMS Alerts**: Text message notifications via email-to-SMS
+- **🚨 Smart Warnings**: Context-aware alerts (e.g., low battery + not charging)
 
 ## 📊 Dashboard Features
 
@@ -110,8 +116,21 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
 
 ## 🔌 API Endpoints
 
+### Basic Endpoints
 - `GET /api/bluetti` - Returns current Bluetti data as JSON
 - `GET /dashboard` - Serves the main dashboard interface
+
+### Advanced API Endpoints (New!)
+- `GET /api/bluetti/battery` - Get battery status only
+- `GET /api/bluetti/power` - Get power status only
+- `GET /api/bluetti/status` - Get device status and connection info
+- `GET /api/health` - Health check endpoint
+- `POST /api/notifications/test` - Test notification system
+- `GET /api/notifications/config` - Get notification configuration
+- `POST /api/notifications/config` - Update notification configuration
+
+### Mobile Dashboard
+- `GET /mobile_dashboard.html` - Mobile-friendly dashboard interface
 
 ## 📱 Mobile Support
 
@@ -120,6 +139,34 @@ The dashboard is fully responsive and works on:
 - Tablets
 - Mobile phones
 - Any device with a web browser
+
+## 🌐 Remote Access & Notifications
+
+### API Server Setup
+1. **Install the API server**:
+   ```bash
+   ./setup_api_server.sh
+   ```
+
+2. **Configure notifications** in `notification_config.json`
+
+3. **Access from anywhere**:
+   - API: `http://your-pi-ip:8083/api/bluetti`
+   - Mobile Dashboard: `http://your-pi-ip:8083/mobile_dashboard.html`
+
+### Smart Notifications
+The system automatically sends alerts when battery reaches:
+- **100%** - "Battery FULL!"
+- **50%** - "Battery at 50%"
+- **30%** - "Battery at 30%" (with charging status warning)
+- **15%** - "Battery at 15%" (WARNING: Low battery!)
+- **10%** - "Battery at 10%" (CRITICAL: Very low battery!)
+- **5%** - "Battery at 5%" (CRITICAL: Extremely low battery!)
+
+### Notification Methods
+- **Email**: Gmail, Outlook, Yahoo, or custom SMTP
+- **SMS**: Email-to-SMS (free) or Twilio (paid)
+- **Smart Alerts**: Only warn about charging if power input is 0W
 
 ## 🛠️ Troubleshooting
 

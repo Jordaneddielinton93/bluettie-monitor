@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluetti AC200M Monitor - Mobile</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+        :root {
+            --primary-color: #6a11cb;
+            --secondary-color: #2575fc;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --card-border: rgba(255, 255, 255, 0.2);
+            --text-color: #e0e0e0;
+            --heading-color: #ffffff;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background-size: 400% 400%;
+            animation: gradientBackground 15s ease infinite;
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 10px;
+            line-height: 1.6;
+        }
+
+        @keyframes gradientBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--heading-color);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .status-bar {
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-connected { background-color: var(--success-color); }
+        .status-disconnected { background-color: var(--danger-color); animation: none; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            color: var(--heading-color);
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .data-item strong {
+            color: var(--info-color);
+            font-weight: 600;
+        }
+
+        .battery-level {
+            font-size: 2.5em;
+            font-weight: 700;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .battery-high { color: var(--success-color); }
+        .battery-medium { color: #ffc107; }
+        .battery-low { color: var(--danger-color); }
+
+        .battery-pack-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .battery-pack-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 12px;
+            text-align: center;
+        }
+
+        .battery-pack-card strong {
+            color: var(--heading-color);
+            font-size: 0.9em;
+        }
+
+        .battery-pack-card .percent {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--success-color);
+            margin-top: 5px;
+        }
+
+        .battery-pack-card .voltage {
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+
+        .refresh-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .timestamp {
+            text-align: center;
+            font-size: 0.8em;
+            color: #bbb;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid var(--danger-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            color: var(--danger-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--info-color);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .battery-level {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔋 Bluetti AC200M Monitor</h1>
+        
+        <div class="status-bar">
+            <span id="status-text">Loading...</span>
+            <span id="status-indicator" class="status-indicator"></span>
+            <div id="last-updated" class="timestamp"></div>
+        </div>
+
+        <div class="card">
+            <h2>Battery Status</h2>
+            <div class="battery-level" id="battery-level">N/A</div>
+            <div class="data-item"><strong>Total Voltage:</strong> <span id="total_battery_voltage">N/A</span> V</div>
+            <div class="data-item"><strong>DC Input:</strong> <span id="dc_input_power">N/A</span> W</div>
+            <div class="data-item"><strong>AC Input:</strong> <span id="ac_input_power">N/A</span> W</div>
+        </div>
+
+        <div class="card">
+            <h2>Power Output</h2>
+            <div class="data-item"><strong>AC Output:</strong> <span id="ac_output_power">N/A</span> W</div>
+            <div class="data-item"><strong>DC Output:</strong> <span id="dc_output_power">N/A</span> W</div>
+            <div class="data-item"><strong>AC Status:</strong> <span id="ac_output_on">N/A</span></div>
+            <div class="data-item"><strong>DC Status:</strong> <span id="dc_output_on">N/A</span></div>
+        </div>
+
+        <div class="card">
+            <h2>Battery Packs</h2>
+            <div class="battery-pack-grid" id="battery-pack-details">
+                <!-- Battery pack details will be inserted here -->
+            </div>
+        </div>
+
+        <button class="refresh-btn" onclick="fetchBluettiData()">🔄 Refresh Data</button>
+
+        <div id="error-message" class="error-message" style="display: none;">
+            Error loading data. Please check your connection.
+        </div>
+    </div>
+
+    <script>
+        const elements = {
+            statusText: document.getElementById('status-text'),
+            statusIndicator: document.getElementById('status-indicator'),
+            lastUpdated: document.getElementById('last-updated'),
+            batteryLevel: document.getElementById('battery-level'),
+            total_battery_voltage: document.getElementById('total_battery_voltage'),
+            batteryPackDetails: document.getElementById('battery-pack-details'),
+            ac_output_power: document.getElementById('ac_output_power'),
+            dc_output_power: document.getElementById('dc_output_power'),
+            ac_output_on: document.getElementById('ac_output_on'),
+            dc_output_on: document.getElementById('dc_output_on'),
+            ac_input_power: document.getElementById('ac_input_power'),
+            dc_input_power: document.getElementById('dc_input_power'),
+            errorMessage: document.getElementById('error-message')
+        };
+
+        function getBatteryLevelClass(percent) {
+            if (percent >= 50) return 'battery-high';
+            if (percent >= 20) return 'battery-medium';
+            return 'battery-low';
+        }
+
+        async function fetchBluettiData() {
+            try {
+                elements.errorMessage.style.display = 'none';
+                
+                const response = await fetch('/api/bluetti');
+                const data = await response.json();
+                
+                const isConnected = Object.keys(data).length > 0 && data.total_battery_percent !== undefined;
+
+                // Update status
+                elements.statusText.textContent = isConnected ? 'Connected' : 'Disconnected';
+                elements.statusIndicator.className = `status-indicator ${isConnected ? 'status-connected' : 'status-disconnected'}`;
+                elements.lastUpdated.textContent = new Date().toLocaleTimeString();
+
+                if (isConnected) {
+                    // Update battery level
+                    const batteryPercent = data.total_battery_percent || 'N/A';
+                    elements.batteryLevel.textContent = `${batteryPercent}%`;
+                    elements.batteryLevel.className = `battery-level ${getBatteryLevelClass(batteryPercent)}`;
+
+                    // Update main metrics
+                    elements.total_battery_voltage.textContent = data.total_battery_voltage || 'N/A';
+                    elements.ac_output_power.textContent = data.ac_output_power || 'N/A';
+                    elements.dc_output_power.textContent = data.dc_output_power || 'N/A';
+                    elements.ac_output_on.textContent = data.ac_output_on || 'N/A';
+                    elements.dc_output_on.textContent = data.dc_output_on || 'N/A';
+                    elements.ac_input_power.textContent = data.ac_input_power || 'N/A';
+                    elements.dc_input_power.textContent = data.dc_input_power || 'N/A';
+
+                    // Update battery pack details
+                    elements.batteryPackDetails.innerHTML = '';
+                    for (let i = 1; i <= 3; i++) {
+                        const packKey = `pack_details${i}`;
+                        if (data[packKey]) {
+                            let packData;
+                            try {
+                                packData = JSON.parse(data[packKey]);
+                            } catch (e) {
+                                packData = data[packKey];
+                            }
+                            
+                            const packCard = document.createElement('div');
+                            packCard.className = 'battery-pack-card';
+                            packCard.innerHTML = `
+                                <strong>Pack ${i}:</strong>
+                                <div class="percent">${packData.percent || 'N/A'}%</div>
+                                <div class="voltage">${packData.voltage || 'N/A'}V</div>
+                            `;
+                            elements.batteryPackDetails.appendChild(packCard);
+                        }
+                    }
+                } else {
+                    // Clear data when disconnected
+                    elements.batteryLevel.textContent = 'N/A';
+                    elements.batteryLevel.className = 'battery-level';
+                    elements.total_battery_voltage.textContent = 'N/A';
+                    elements.ac_output_power.textContent = 'N/A';
+                    elements.dc_output_power.textContent = 'N/A';
+                    elements.ac_output_on.textContent = 'N/A';
+                    elements.dc_output_on.textContent = 'N/A';
+                    elements.ac_input_power.textContent = 'N/A';
+                    elements.dc_input_power.textContent = 'N/A';
+                    elements.batteryPackDetails.innerHTML = '';
+                }
+
+            } catch (error) {
+                console.error("Error fetching Bluetti data:", error);
+                elements.statusText.textContent = 'Disconnected (Error)';
+                elements.statusIndicator.className = 'status-indicator status-disconnected';
+                elements.lastUpdated.textContent = new Date().toLocaleTimeString();
+                elements.errorMessage.style.display = 'block';
+            }
+        }
+
+        // Auto-refresh every 10 seconds
+        setInterval(fetchBluettiData, 10000);
+
+        // Initial fetch
+        fetchBluettiData();
+    </script>
+</body>
+</html>
