@@ -9,8 +9,8 @@ import time
 import smtplib
 import requests
 import os
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import paho.mqtt.client as mqtt
@@ -52,7 +52,7 @@ NOTIFICATION_CONFIG = {
 }
 
 # Battery level thresholds
-BATTERY_THRESHOLDS = [100, 50, 40, 39, 30, 15, 10, 5]
+BATTERY_THRESHOLDS = [100, 50, 40, 39, 38, 30, 15, 10, 5]
 NOTIFICATION_COOLDOWN = 300  # 5 minutes between notifications for same level
 
 # Global data storage
