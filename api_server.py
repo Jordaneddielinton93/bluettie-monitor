@@ -605,16 +605,17 @@ def get_discharge_current():
             avg_discharge_rate, avg_power, session_count, first_session, last_session = stats
             
             # Calculate time-based discharge rate from battery level changes
+            # Use a longer period to get more accurate rate
             cursor.execute('''
                 SELECT battery_percent, timestamp
                 FROM discharge_sessions 
-                WHERE timestamp >= datetime('now', '-24 hours')
+                WHERE timestamp >= datetime('now', '-12 hours')
                 ORDER BY timestamp ASC
             ''')
             sessions = cursor.fetchall()
             
             # Calculate actual discharge rate from battery level changes
-            if len(sessions) >= 2:
+            if len(sessions) >= 3:  # Need at least 3 sessions for reliable calculation
                 first_battery = sessions[0][0]
                 last_battery = sessions[-1][0]
                 first_time = datetime.fromisoformat(sessions[0][1])
@@ -623,17 +624,41 @@ def get_discharge_current():
                 time_diff_hours = (last_time - first_time).total_seconds() / 3600
                 battery_diff = first_battery - last_battery
                 
-                if time_diff_hours > 0:
+                # Only use this calculation if we have enough time span (at least 2 hours)
+                if time_diff_hours >= 2 and battery_diff > 0:
                     actual_discharge_rate = battery_diff / time_diff_hours
                 else:
-                    actual_discharge_rate = avg_discharge_rate or 0
+                    # If not enough data, use power-based estimation
+                    # Estimate discharge rate based on power consumption
+                    if avg_power > 0:
+                        # Convert power consumption to %/hour based on battery capacity
+                        total_capacity_wh = 6144
+                        power_discharge_rate = (avg_power / total_capacity_wh) * 100
+                        actual_discharge_rate = power_discharge_rate
+                    else:
+                        actual_discharge_rate = avg_discharge_rate or 0
             else:
-                actual_discharge_rate = avg_discharge_rate or 0
+                # Not enough data, use power-based estimation
+                if avg_power > 0:
+                    total_capacity_wh = 6144
+                    actual_discharge_rate = (avg_power / total_capacity_wh) * 100
+                else:
+                    actual_discharge_rate = avg_discharge_rate or 0
             
             # Calculate estimated time remaining based on current battery and discharge rate
+            # Use actual battery capacity (6144Wh for AC200MAX + 2x B230)
+            total_capacity_wh = 6144
             if actual_discharge_rate > 0:
-                estimated_hours_remaining = current_battery / actual_discharge_rate
-                estimated_days_remaining = estimated_hours_remaining / 24
+                # Convert discharge rate from %/hour to Wh/hour
+                current_capacity_wh = (current_battery / 100) * total_capacity_wh
+                discharge_rate_wh_per_hour = (actual_discharge_rate / 100) * total_capacity_wh
+                
+                if discharge_rate_wh_per_hour > 0:
+                    estimated_hours_remaining = current_capacity_wh / discharge_rate_wh_per_hour
+                    estimated_days_remaining = estimated_hours_remaining / 24
+                else:
+                    estimated_hours_remaining = 0
+                    estimated_days_remaining = 0
             else:
                 estimated_hours_remaining = 0
                 estimated_days_remaining = 0

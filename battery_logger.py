@@ -557,31 +557,38 @@ class BatteryLogger:
                 with sqlite3.connect(DB_PATH) as conn:
                     cursor = conn.cursor()
                     
-                    # Get the most recent discharge session
+                    # Get discharge sessions from the last 4 hours to calculate rate
                     cursor.execute('''
                         SELECT battery_percent, timestamp, total_output_power
                         FROM discharge_sessions 
-                        ORDER BY timestamp DESC 
-                        LIMIT 1
+                        WHERE timestamp >= datetime('now', '-4 hours')
+                        ORDER BY timestamp ASC
                     ''')
-                    last_session = cursor.fetchone()
+                    recent_sessions = cursor.fetchall()
                     
                     discharge_rate = 0.0
                     estimated_hours = 0.0
                     estimated_days = 0.0
                     avg_power = total_output_power
                     
-                    if last_session:
-                        last_percent, last_timestamp, last_power = last_session
-                        last_time = datetime.fromisoformat(last_timestamp)
-                        hours_elapsed = (current_time - last_time).total_seconds() / 3600
+                    if len(recent_sessions) >= 2:
+                        # Calculate discharge rate from first to last session in the period
+                        first_percent = recent_sessions[0][0]
+                        first_timestamp = recent_sessions[0][1]
+                        last_percent = recent_sessions[-1][0]
+                        last_timestamp = recent_sessions[-1][1]
                         
-                        if hours_elapsed > 0 and last_percent > battery_percent:
+                        first_time = datetime.fromisoformat(first_timestamp)
+                        last_time = datetime.fromisoformat(last_timestamp)
+                        hours_elapsed = (last_time - first_time).total_seconds() / 3600
+                        
+                        if hours_elapsed > 0 and first_percent > last_percent:
                             # Calculate discharge rate (% per hour)
-                            discharge_rate = (last_percent - battery_percent) / hours_elapsed
+                            discharge_rate = (first_percent - last_percent) / hours_elapsed
                             
-                            # Calculate average power consumption
-                            avg_power = (last_power + total_output_power) / 2
+                            # Calculate average power consumption from all sessions
+                            total_power = sum(session[2] for session in recent_sessions)
+                            avg_power = total_power / len(recent_sessions)
                             
                             # Estimate remaining time based on current discharge rate
                             if discharge_rate > 0:
