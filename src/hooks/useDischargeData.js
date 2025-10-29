@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-const API_BASE =
-  process.env.NODE_ENV === "production"
-    ? process.env.REACT_APP_API_BASE || "http://localhost:8083"
-    : "http://localhost:8083";
+const API_BASE = "http://192.168.1.145:8083";
 
 export function useDischargeData() {
   const [currentDischarge, setCurrentDischarge] = useState(null);
