@@ -96,9 +96,17 @@ export default function ActivityLog() {
           <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-emerald-500/20 to-cyan-400/20 rounded-lg blur-sm"></div>
           <div className="relative bg-slate-900/50 backdrop-blur-sm border border-green-400/30 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 font-mono">
-                CORE STATUS
-              </h4>
+              <div className="group relative">
+                <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 font-mono">
+                  CORE STATUS
+                </h4>
+                <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-green-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                  <div className="text-green-300 text-sm font-mono mb-1">CORE STATUS</div>
+                  <div className="text-gray-300 text-xs font-mono">
+                    Real-time battery status showing current level, time remaining, power draw, and active charging sessions with progress tracking.
+                  </div>
+                </div>
+              </div>
               <div className="text-xs text-green-300 font-mono">REAL-TIME</div>
             </div>
 
@@ -161,9 +169,17 @@ export default function ActivityLog() {
         <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 via-pink-500/10 to-cyan-400/10 rounded-lg blur-sm"></div>
         <div className="relative bg-slate-900/50 backdrop-blur-sm border border-purple-400/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-mono">
-              CHARGE SESSION LOG
-            </h3>
+            <div className="group relative">
+              <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-mono">
+                CHARGE SESSION LOG
+              </h3>
+              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-purple-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="text-purple-300 text-sm font-mono mb-1">CHARGE SESSION LOG</div>
+                <div className="text-gray-300 text-xs font-mono">
+                  Complete history of all charging sessions with duration, efficiency, power consumption, and charging speed analysis over time.
+                </div>
+              </div>
+            </div>
             <div className="text-xs text-purple-300 font-mono">
               {chargeSessions.length} SESSIONS
             </div>
@@ -240,9 +256,17 @@ export default function ActivityLog() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-cyan-500/10 to-teal-400/10 rounded-lg blur-sm"></div>
           <div className="relative bg-slate-900/50 backdrop-blur-sm border border-blue-400/30 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 font-mono">
-                CORE LEVEL TREND
-              </h3>
+              <div className="group relative">
+                <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 font-mono">
+                  CORE LEVEL TREND
+                </h3>
+                <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-blue-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                  <div className="text-blue-300 text-sm font-mono mb-1">CORE LEVEL TREND</div>
+                  <div className="text-gray-300 text-xs font-mono">
+                    Visual chart showing battery level changes over the last 24 hours. Each bar represents an hourly snapshot with color-coded levels.
+                  </div>
+                </div>
+              </div>
               <div className="text-xs text-blue-300 font-mono">
                 LAST 24H • {history.length} POINTS
               </div>
