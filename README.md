@@ -1,20 +1,22 @@
-# Bluetti AC200M Monitor
+# Bluetti Pi Monitor - Sci-Fi Vanlife Edition
 
-A real-time monitoring dashboard for Bluetti AC200M power stations running on Raspberry Pi with automatic startup and beautiful web interface.
+A futuristic, Halo-inspired monitoring dashboard for Bluetti power stations running on Raspberry Pi. Perfect for vanlife adventures with real-time battery monitoring, charge session tracking, and a stunning sci-fi interface.
 
 ## 🎯 Features
 
-- **Real-time Monitoring**: Live data from your Bluetti AC200M power station
-- **Beautiful Dashboard**: Modern, responsive web interface with glass-morphism design
-- **Auto-Start**: Automatically starts on Raspberry Pi boot with systemd service
-- **Auto-Restart**: Automatically restarts if the service crashes
-- **Battery Pack Details**: Individual monitoring of all battery packs (pack1, pack2, pack3)
-- **Power Monitoring**: DC/AC input and output power tracking
-- **System Status**: Complete system status monitoring
-- **MQTT Integration**: Uses bluetti-mqtt tool for Bluetooth communication
-- **HTTP API**: Simple REST API for data access
-- **🌐 Remote API**: REST API endpoints for remote access
-- **📱 Mobile Dashboard**: Mobile-friendly web interface
+- **🚀 Sci-Fi Interface**: Halo-inspired futuristic dashboard with neon accents and terminal aesthetics
+- **⚡ Real-time Monitoring**: Live data from your Bluetti AC200M power station
+- **🔋 Battery Activity Log**: Comprehensive tracking with time remaining calculations
+- **📊 Charge Session Timeline**: Beautiful timeline of charging sessions with duration and efficiency
+- **🎮 Vanlife Ready**: Perfect for off-grid adventures and mobile power management
+- **🔄 Auto-Start**: Automatically starts on Raspberry Pi boot with systemd service
+- **🛡️ Auto-Restart**: Automatically restarts if the service crashes
+- **📦 Battery Pack Details**: Individual monitoring of all battery packs (pack1, pack2, pack3)
+- **⚡ Power Monitoring**: DC/AC input and output power tracking with flow visualization
+- **🖥️ System Status**: Complete system status monitoring with sci-fi terminology
+- **📡 MQTT Integration**: Uses bluetti-mqtt tool for Bluetooth communication
+- **🌐 REST API**: Comprehensive API for data access and integration
+- **📱 Mobile Dashboard**: Mobile-friendly web interface optimized for tablets
 - **🔔 Smart Notifications**: Email and SMS alerts for battery levels
 - **📧 Email Alerts**: Automatic email notifications at battery thresholds
 - **📱 SMS Alerts**: Text message notifications via email-to-SMS
@@ -47,7 +49,25 @@ A real-time monitoring dashboard for Bluetti AC200M power stations running on Ra
    cd bluetti-monitor
    ```
 
-2. **Run the setup script**:
+2. **Configure environment variables**:
+
+   ```bash
+   # Copy the example environment file
+   cp env.example .env
+   
+   # Edit the environment file with your settings
+   nano .env
+   ```
+
+   **Required Environment Variables:**
+   - `REACT_APP_API_BASE`: Your Raspberry Pi's IP address (e.g., `http://192.168.1.145:8083`)
+   - `BLUETTI_MAC`: Your Bluetti device's MAC address
+   - `BLUETTI_MODEL`: Your Bluetti model (e.g., `AC200MAX`)
+
+   **Optional Environment Variables:**
+   - Email/SMS notification settings (see `env.example` for details)
+
+3. **Run the setup script**:
 
    ```bash
    chmod +x pi-setup.sh

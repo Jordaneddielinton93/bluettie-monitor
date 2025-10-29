@@ -91,3 +91,6 @@ http_server.log
 pi-setup.sh
 manage_bluetti_service.sh
 start_bluetti_monitor.sh
+
+# Unused/redundant files
+api_server.py

@@ -9,6 +9,7 @@ import time
 import smtplib
 import requests
 import os
+import sqlite3
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import Flask, jsonify, request
@@ -16,7 +17,7 @@ from flask_cors import CORS
 import paho.mqtt.client as mqtt
 import threading
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -59,6 +60,9 @@ NOTIFICATION_COOLDOWN = 300  # 5 minutes between notifications for same level
 latest_bluetti_data = {}
 device_id = None
 last_notifications = {}
+
+# Battery activity database path
+BATTERY_DB_PATH = "/home/pi/bluetti-monitor/battery_activity.db"
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -306,6 +310,250 @@ def health_check():
         'mqtt_connected': True,
         'data_available': len(latest_bluetti_data) > 0
     })
+
+# Battery Activity API Endpoints
+
+@app.route('/api/activity/current', methods=['GET'])
+def get_activity_current():
+    """Get current battery status with time remaining"""
+    try:
+        if not latest_bluetti_data:
+            return jsonify({'error': 'No data available'}), 503
+        
+        # Extract current data
+        battery_percent = float(latest_bluetti_data.get('total_battery_percent', 0))
+        battery_voltage = float(latest_bluetti_data.get('total_battery_voltage', 0))
+        ac_output = float(latest_bluetti_data.get('ac_output_power', 0))
+        dc_output = float(latest_bluetti_data.get('dc_output_power', 0))
+        ac_input = float(latest_bluetti_data.get('ac_input_power', 0))
+        dc_input = float(latest_bluetti_data.get('dc_input_power', 0))
+        
+        total_output = ac_output + dc_output
+        total_capacity_wh = 6144  # AC200MAX + 2x B230
+        remaining_wh = (battery_percent / 100) * total_capacity_wh
+        time_remaining_hours = remaining_wh / total_output if total_output > 0 else float('inf')
+        
+        is_charging = ac_input > 0 or dc_input > 0
+        
+        # Format time remaining
+        if time_remaining_hours == float('inf'):
+            formatted_time = "∞"
+        else:
+            days = int(time_remaining_hours // 24)
+            remaining_hours = int(time_remaining_hours % 24)
+            minutes = int((time_remaining_hours % 1) * 60)
+            
+            if days > 0:
+                formatted_time = f"{days}d {remaining_hours}h {minutes}m"
+            elif remaining_hours > 0:
+                formatted_time = f"{remaining_hours}h {minutes}m"
+            else:
+                formatted_time = f"{minutes}m"
+        
+        result = {
+            'battery_percent': battery_percent,
+            'battery_voltage': battery_voltage,
+            'total_capacity_wh': total_capacity_wh,
+            'remaining_capacity_wh': remaining_wh,
+            'current_output_watts': total_output,
+            'time_remaining': {
+                'hours': time_remaining_hours,
+                'days': time_remaining_hours / 24,
+                'formatted': formatted_time
+            },
+            'is_charging': is_charging,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Check for active charging session
+        if is_charging and os.path.exists(BATTERY_DB_PATH):
+            try:
+                with sqlite3.connect(BATTERY_DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        SELECT start_time, start_percent, charge_type
+                        FROM charge_sessions 
+                        WHERE end_time IS NULL 
+                        ORDER BY start_time DESC 
+                        LIMIT 1
+                    ''')
+                    session = cursor.fetchone()
+                    
+                    if session:
+                        start_time = datetime.fromisoformat(session[0])
+                        duration = (datetime.now() - start_time).total_seconds() / 60
+                        result['current_session'] = {
+                            'started_at': session[0],
+                            'start_percent': session[1],
+                            'duration_minutes': int(duration),
+                            'charge_type': session[2]
+                        }
+            except Exception as e:
+                logger.warning(f"Error checking current session: {e}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error getting current activity: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/activity/history', methods=['GET'])
+def get_activity_history():
+    """Get battery history for last 7 days"""
+    try:
+        if not os.path.exists(BATTERY_DB_PATH):
+            return jsonify({'error': 'Database not available'}), 503
+        
+        # Get query parameters
+        limit = request.args.get('limit', 100, type=int)
+        hours = request.args.get('hours', 24, type=int)
+        
+        cutoff_time = datetime.now() - timedelta(hours=hours)
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT timestamp, battery_percent, battery_voltage, 
+                       ac_output_power, dc_output_power, total_output_power,
+                       ac_input_power, dc_input_power, time_remaining_hours,
+                       pack1_voltage, pack2_voltage, pack3_voltage
+                FROM battery_snapshots 
+                WHERE timestamp > ? 
+                ORDER BY timestamp DESC 
+                LIMIT ?
+            ''', (cutoff_time.isoformat(), limit))
+            
+            rows = cursor.fetchall()
+            
+            history = []
+            for row in rows:
+                history.append({
+                    'timestamp': row[0],
+                    'battery_percent': row[1],
+                    'battery_voltage': row[2],
+                    'ac_output_power': row[3],
+                    'dc_output_power': row[4],
+                    'total_output_power': row[5],
+                    'ac_input_power': row[6],
+                    'dc_input_power': row[7],
+                    'time_remaining_hours': row[8],
+                    'pack1_voltage': row[9],
+                    'pack2_voltage': row[10],
+                    'pack3_voltage': row[11]
+                })
+            
+            return jsonify({
+                'history': history,
+                'count': len(history),
+                'period_hours': hours
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting activity history: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/activity/charge-sessions', methods=['GET'])
+def get_charge_sessions():
+    """Get recent charging sessions"""
+    try:
+        if not os.path.exists(BATTERY_DB_PATH):
+            return jsonify({'error': 'Database not available'}), 503
+        
+        limit = request.args.get('limit', 20, type=int)
+        days = request.args.get('days', 7, type=int)
+        
+        cutoff_time = datetime.now() - timedelta(days=days)
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT start_time, end_time, start_percent, end_percent,
+                       duration_minutes, charge_type, avg_input_power
+                FROM charge_sessions 
+                WHERE start_time > ? 
+                ORDER BY start_time DESC 
+                LIMIT ?
+            ''', (cutoff_time.isoformat(), limit))
+            
+            rows = cursor.fetchall()
+            
+            sessions = []
+            for row in rows:
+                sessions.append({
+                    'start_time': row[0],
+                    'end_time': row[1],
+                    'start_percent': row[2],
+                    'end_percent': row[3],
+                    'duration_minutes': row[4],
+                    'charge_type': row[5],
+                    'avg_input_power': row[6],
+                    'percent_gained': row[3] - row[2] if row[1] else None,
+                    'completed': row[1] is not None
+                })
+            
+            return jsonify({
+                'sessions': sessions,
+                'count': len(sessions),
+                'period_days': days
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting charge sessions: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/activity/stats', methods=['GET'])
+def get_activity_stats():
+    """Get summary statistics"""
+    try:
+        if not os.path.exists(BATTERY_DB_PATH):
+            return jsonify({'error': 'Database not available'}), 503
+        
+        days = request.args.get('days', 7, type=int)
+        cutoff_time = datetime.now() - timedelta(days=days)
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Get consumption stats
+            cursor.execute('''
+                SELECT AVG(total_output_power), MAX(total_output_power), 
+                       COUNT(*) as snapshot_count
+                FROM battery_snapshots 
+                WHERE timestamp > ? AND total_output_power > 0
+            ''', (cutoff_time.isoformat(),))
+            
+            consumption_stats = cursor.fetchone()
+            
+            # Get charging stats
+            cursor.execute('''
+                SELECT COUNT(*) as total_sessions,
+                       AVG(duration_minutes) as avg_duration,
+                       AVG(end_percent - start_percent) as avg_percent_gained,
+                       SUM(duration_minutes) as total_charge_time
+                FROM charge_sessions 
+                WHERE start_time > ? AND end_time IS NOT NULL
+            ''', (cutoff_time.isoformat(),))
+            
+            charging_stats = cursor.fetchone()
+            
+            return jsonify({
+                'period_days': days,
+                'consumption': {
+                    'avg_power_watts': consumption_stats[0] or 0,
+                    'max_power_watts': consumption_stats[1] or 0,
+                    'snapshot_count': consumption_stats[2] or 0
+                },
+                'charging': {
+                    'total_sessions': charging_stats[0] or 0,
+                    'avg_duration_minutes': charging_stats[1] or 0,
+                    'avg_percent_gained': charging_stats[2] or 0,
+                    'total_charge_time_minutes': charging_stats[3] or 0
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting activity stats: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     # Start MQTT handler

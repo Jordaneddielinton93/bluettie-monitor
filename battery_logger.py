@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""
+Battery Activity Logger
+Tracks battery usage, calculates time remaining, and logs charging sessions
+"""
+
+import sqlite3
+import json
+import time
+import logging
+import paho.mqtt.client as mqtt
+from datetime import datetime, timedelta
+import os
+import threading
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Configuration
+MQTT_BROKER_HOST = "127.0.0.1"
+MQTT_BROKER_PORT = 1883
+DB_PATH = "/home/pi/bluetti-monitor/battery_activity.db"
+TOTAL_CAPACITY_WH = 6144  # AC200MAX (2048) + 2x B230 (2048 each)
+SNAPSHOT_INTERVAL = 30  # seconds
+CLEANUP_DAYS = 7
+
+class BatteryLogger:
+    def __init__(self):
+        self.client = mqtt.Client()
+        self.client.on_connect = self._on_connect
+        self.client.on_message = self._on_message
+        self.latest_data = {}
+        self.current_charge_session = None
+        self.db_lock = threading.Lock()
+        
+        # Initialize database
+        self._init_database()
+        
+        # Connect to MQTT
+        self.client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
+        self.client.loop_start()
+        
+        # Start snapshot timer
+        self._start_snapshot_timer()
+        
+        # Cleanup old data on startup
+        self._cleanup_old_data()
+
+    def _init_database(self):
+        """Initialize SQLite database with required tables"""
+        try:
+            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                
+                # Battery snapshots table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS battery_snapshots (
+                        id INTEGER PRIMARY KEY,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        battery_percent REAL,
+                        battery_voltage REAL,
+                        ac_output_power REAL,
+                        dc_output_power REAL,
+                        total_output_power REAL,
+                        ac_input_power REAL,
+                        dc_input_power REAL,
+                        time_remaining_hours REAL,
+                        pack1_voltage REAL,
+                        pack2_voltage REAL,
+                        pack3_voltage REAL
+                    )
+                ''')
+                
+                # Charging sessions table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS charge_sessions (
+                        id INTEGER PRIMARY KEY,
+                        start_time DATETIME,
+                        end_time DATETIME,
+                        start_percent REAL,
+                        end_percent REAL,
+                        duration_minutes INTEGER,
+                        charge_type TEXT,
+                        avg_input_power REAL
+                    )
+                ''')
+                
+                # Create indexes for better performance
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON battery_snapshots(timestamp)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON charge_sessions(start_time)')
+                
+                conn.commit()
+                logger.info("Database initialized successfully")
+                
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+
+    def _on_connect(self, client, userdata, flags, rc):
+        """MQTT connection callback"""
+        logger.info(f"MQTT Connected with result code {rc}")
+        client.subscribe("bluetti/state/#")
+
+    def _on_message(self, client, userdata, msg):
+        """MQTT message callback"""
+        try:
+            topic_parts = msg.topic.split('/')
+            if len(topic_parts) >= 4 and topic_parts[0] == 'bluetti' and topic_parts[1] == 'state':
+                key = topic_parts[-1]
+                try:
+                    value = json.loads(msg.payload.decode())
+                except json.JSONDecodeError:
+                    value = msg.payload.decode()
+                
+                self.latest_data[key] = value
+                
+                # Check for charging state changes
+                self._check_charging_state()
+                
+        except Exception as e:
+            logger.error(f"Error processing MQTT message: {e}")
+
+    def _check_charging_state(self):
+        """Check if charging state has changed and update session tracking"""
+        try:
+            ac_input = float(self.latest_data.get('ac_input_power', 0))
+            dc_input = float(self.latest_data.get('dc_input_power', 0))
+            battery_percent = float(self.latest_data.get('total_battery_percent', 0))
+            
+            is_charging = ac_input > 0 or dc_input > 0
+            is_full = battery_percent >= 100
+            
+            # Start new charging session
+            if is_charging and not self.current_charge_session and not is_full:
+                self.current_charge_session = {
+                    'start_time': datetime.now(),
+                    'start_percent': battery_percent,
+                    'charge_type': 'AC' if ac_input > 0 else 'DC',
+                    'input_powers': []
+                }
+                logger.info(f"Started charging session at {battery_percent}%")
+            
+            # Update current session
+            elif self.current_charge_session and is_charging:
+                self.current_charge_session['input_powers'].append(max(ac_input, dc_input))
+            
+            # End charging session
+            elif self.current_charge_session and (not is_charging or is_full):
+                self._end_charge_session(battery_percent)
+                
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error checking charging state: {e}")
+
+    def _end_charge_session(self, end_percent):
+        """End current charging session and save to database"""
+        if not self.current_charge_session:
+            return
+            
+        try:
+            session = self.current_charge_session
+            end_time = datetime.now()
+            duration = (end_time - session['start_time']).total_seconds() / 60  # minutes
+            avg_power = sum(session['input_powers']) / len(session['input_powers']) if session['input_powers'] else 0
+            
+            with self.db_lock:
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT INTO charge_sessions 
+                        (start_time, end_time, start_percent, end_percent, duration_minutes, charge_type, avg_input_power)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        session['start_time'].isoformat(),
+                        end_time.isoformat(),
+                        session['start_percent'],
+                        end_percent,
+                        int(duration),
+                        session['charge_type'],
+                        avg_power
+                    ))
+                    conn.commit()
+            
+            logger.info(f"Ended charging session: {session['start_percent']}% → {end_percent}% ({duration:.1f}min)")
+            self.current_charge_session = None
+            
+        except Exception as e:
+            logger.error(f"Error ending charge session: {e}")
+
+    def _start_snapshot_timer(self):
+        """Start periodic snapshot timer"""
+        def snapshot_worker():
+            while True:
+                try:
+                    self._take_snapshot()
+                    time.sleep(SNAPSHOT_INTERVAL)
+                except Exception as e:
+                    logger.error(f"Error in snapshot worker: {e}")
+                    time.sleep(60)  # Wait a minute before retrying
+        
+        thread = threading.Thread(target=snapshot_worker, daemon=True)
+        thread.start()
+        logger.info("Snapshot timer started")
+
+    def _take_snapshot(self):
+        """Take a snapshot of current battery state"""
+        if not self.latest_data:
+            return
+            
+        try:
+            # Extract data
+            battery_percent = float(self.latest_data.get('total_battery_percent', 0))
+            battery_voltage = float(self.latest_data.get('total_battery_voltage', 0))
+            ac_output = float(self.latest_data.get('ac_output_power', 0))
+            dc_output = float(self.latest_data.get('dc_output_power', 0))
+            ac_input = float(self.latest_data.get('ac_input_power', 0))
+            dc_input = float(self.latest_data.get('dc_input_power', 0))
+            
+            total_output = ac_output + dc_output
+            
+            # Calculate time remaining
+            remaining_wh = (battery_percent / 100) * TOTAL_CAPACITY_WH
+            time_remaining_hours = remaining_wh / total_output if total_output > 0 else float('inf')
+            
+            # Get pack voltages
+            pack1_voltage = float(self.latest_data.get('pack1_voltage', 0))
+            pack2_voltage = float(self.latest_data.get('pack2_voltage', 0))
+            pack3_voltage = float(self.latest_data.get('pack3_voltage', 0))
+            
+            # Save to database
+            with self.db_lock:
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT INTO battery_snapshots 
+                        (battery_percent, battery_voltage, ac_output_power, dc_output_power, 
+                         total_output_power, ac_input_power, dc_input_power, time_remaining_hours,
+                         pack1_voltage, pack2_voltage, pack3_voltage)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        battery_percent, battery_voltage, ac_output, dc_output,
+                        total_output, ac_input, dc_input, time_remaining_hours,
+                        pack1_voltage, pack2_voltage, pack3_voltage
+                    ))
+                    conn.commit()
+            
+            logger.debug(f"Snapshot saved: {battery_percent}%, {time_remaining_hours:.1f}h remaining")
+            
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error taking snapshot: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error in snapshot: {e}")
+
+    def _cleanup_old_data(self):
+        """Remove data older than CLEANUP_DAYS"""
+        try:
+            cutoff_date = datetime.now() - timedelta(days=CLEANUP_DAYS)
+            
+            with self.db_lock:
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Cleanup snapshots
+                    cursor.execute('DELETE FROM battery_snapshots WHERE timestamp < ?', (cutoff_date.isoformat(),))
+                    snapshots_deleted = cursor.rowcount
+                    
+                    # Cleanup old charge sessions
+                    cursor.execute('DELETE FROM charge_sessions WHERE start_time < ?', (cutoff_date.isoformat(),))
+                    sessions_deleted = cursor.rowcount
+                    
+                    conn.commit()
+                    
+            logger.info(f"Cleanup completed: {snapshots_deleted} snapshots, {sessions_deleted} sessions deleted")
+            
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+
+    def get_current_status(self):
+        """Get current battery status with time remaining"""
+        try:
+            if not self.latest_data:
+                return None
+                
+            battery_percent = float(self.latest_data.get('total_battery_percent', 0))
+            battery_voltage = float(self.latest_data.get('total_battery_voltage', 0))
+            ac_output = float(self.latest_data.get('ac_output_power', 0))
+            dc_output = float(self.latest_data.get('dc_output_power', 0))
+            ac_input = float(self.latest_data.get('ac_input_power', 0))
+            dc_input = float(self.latest_data.get('dc_input_power', 0))
+            
+            total_output = ac_output + dc_output
+            remaining_wh = (battery_percent / 100) * TOTAL_CAPACITY_WH
+            time_remaining_hours = remaining_wh / total_output if total_output > 0 else float('inf')
+            
+            is_charging = ac_input > 0 or dc_input > 0
+            
+            result = {
+                'battery_percent': battery_percent,
+                'battery_voltage': battery_voltage,
+                'total_capacity_wh': TOTAL_CAPACITY_WH,
+                'remaining_capacity_wh': remaining_wh,
+                'current_output_watts': total_output,
+                'time_remaining': {
+                    'hours': time_remaining_hours,
+                    'days': time_remaining_hours / 24,
+                    'formatted': self._format_time(time_remaining_hours)
+                },
+                'is_charging': is_charging,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Add current charging session info
+            if self.current_charge_session:
+                session = self.current_charge_session
+                current_duration = (datetime.now() - session['start_time']).total_seconds() / 60
+                result['current_session'] = {
+                    'started_at': session['start_time'].isoformat(),
+                    'start_percent': session['start_percent'],
+                    'duration_minutes': int(current_duration),
+                    'charge_type': session['charge_type']
+                }
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting current status: {e}")
+            return None
+
+    def _format_time(self, hours):
+        """Format time remaining as human-readable string"""
+        if hours == float('inf'):
+            return "∞"
+        
+        days = int(hours // 24)
+        remaining_hours = int(hours % 24)
+        minutes = int((hours % 1) * 60)
+        
+        if days > 0:
+            return f"{days}d {remaining_hours}h {minutes}m"
+        elif remaining_hours > 0:
+            return f"{remaining_hours}h {minutes}m"
+        else:
+            return f"{minutes}m"
+
+    def run(self):
+        """Main run loop"""
+        logger.info("Battery Logger started")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logger.info("Shutting down battery logger...")
+            if self.current_charge_session:
+                self._end_charge_session(float(self.latest_data.get('total_battery_percent', 0)))
+
+if __name__ == "__main__":
+    logger = BatteryLogger()
+    logger.run()

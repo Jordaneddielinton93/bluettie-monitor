@@ -228,6 +228,78 @@
         color: var(--info-color);
       }
 
+      /* Activity styles */
+      .activity-hero {
+        text-align: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        margin-bottom: 15px;
+      }
+
+      .time-remaining {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .current-draw {
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
+
+      .charging-banner {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      .recent-sessions {
+        margin-top: 15px;
+      }
+
+      .session-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border: 1px solid #e9ecef;
+      }
+
+      .session-icon {
+        font-size: 1.5em;
+        margin-right: 12px;
+      }
+
+      .session-details {
+        flex: 1;
+      }
+
+      .session-range {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 2px;
+      }
+
+      .session-meta {
+        font-size: 0.85em;
+        color: #666;
+      }
+
+      .no-sessions {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        padding: 20px;
+      }
+
       @media (max-width: 480px) {
         .container {
           padding: 10px;
@@ -242,6 +314,10 @@
         }
 
         .battery-level {
+          font-size: 2em;
+        }
+
+        .time-remaining {
           font-size: 2em;
         }
       }
@@ -295,6 +371,26 @@
         </div>
       </div>
 
+      <div class="card">
+        <h2>Battery Activity</h2>
+        <div id="activity-status">
+          <div class="activity-hero">
+            <div class="time-remaining" id="time-remaining">Loading...</div>
+            <div class="current-draw" id="current-draw">-</div>
+          </div>
+          <div
+            id="charging-banner"
+            class="charging-banner"
+            style="display: none"
+          >
+            <span id="charging-text">Currently charging</span>
+          </div>
+        </div>
+        <div id="recent-sessions" class="recent-sessions">
+          <!-- Recent charge sessions will be inserted here -->
+        </div>
+      </div>
+
       <button class="refresh-btn" onclick="fetchBluettiData()">
         🔄 Refresh Data
       </button>
@@ -319,6 +415,11 @@
         ac_input_power: document.getElementById("ac_input_power"),
         dc_input_power: document.getElementById("dc_input_power"),
         errorMessage: document.getElementById("error-message"),
+        timeRemaining: document.getElementById("time-remaining"),
+        currentDraw: document.getElementById("current-draw"),
+        chargingBanner: document.getElementById("charging-banner"),
+        chargingText: document.getElementById("charging-text"),
+        recentSessions: document.getElementById("recent-sessions"),
       };
 
       function getBatteryLevelClass(percent) {
@@ -393,6 +494,9 @@
                 elements.batteryPackDetails.appendChild(packCard);
               }
             }
+
+            // Update activity data
+            updateActivityData();
           } else {
             // Clear data when disconnected
             elements.batteryLevel.textContent = "N/A";
@@ -405,6 +509,12 @@
             elements.ac_input_power.textContent = "N/A";
             elements.dc_input_power.textContent = "N/A";
             elements.batteryPackDetails.innerHTML = "";
+
+            // Clear activity data
+            elements.timeRemaining.textContent = "N/A";
+            elements.currentDraw.textContent = "-";
+            elements.chargingBanner.style.display = "none";
+            elements.recentSessions.innerHTML = "";
           }
         } catch (error) {
           console.error("Error fetching Bluetti data:", error);
@@ -418,6 +528,105 @@
 
       // Auto-refresh every 10 seconds
       setInterval(fetchBluettiData, 10000);
+
+      // Activity data functions
+      async function updateActivityData() {
+        try {
+          // Fetch current activity status
+          const response = await fetch("/api/activity/current");
+          if (response.ok) {
+            const activityData = await response.json();
+
+            // Update time remaining
+            elements.timeRemaining.textContent =
+              activityData.time_remaining.formatted || "∞";
+            elements.currentDraw.textContent = `${activityData.current_output_watts}W`;
+
+            // Update charging banner
+            if (activityData.is_charging && activityData.current_session) {
+              elements.chargingBanner.style.display = "block";
+              elements.chargingText.textContent = `Charging from ${
+                activityData.current_session.start_percent
+              }% (${formatDuration(
+                activityData.current_session.duration_minutes
+              )} elapsed)`;
+            } else {
+              elements.chargingBanner.style.display = "none";
+            }
+          }
+
+          // Fetch recent charge sessions
+          const sessionsResponse = await fetch(
+            "/api/activity/charge-sessions?limit=3"
+          );
+          if (sessionsResponse.ok) {
+            const sessionsData = await sessionsResponse.json();
+            updateRecentSessions(sessionsData.sessions || []);
+          }
+        } catch (error) {
+          console.error("Error fetching activity data:", error);
+        }
+      }
+
+      function updateRecentSessions(sessions) {
+        elements.recentSessions.innerHTML = "";
+
+        if (sessions.length === 0) {
+          elements.recentSessions.innerHTML =
+            '<div class="no-sessions">No recent charge sessions</div>';
+          return;
+        }
+
+        sessions.forEach((session) => {
+          const sessionDiv = document.createElement("div");
+          sessionDiv.className = "session-item";
+
+          const icon = session.charge_type === "AC" ? "🔌" : "⚡";
+          const completed = session.completed;
+          const timeAgo = completed
+            ? formatTimeAgo(session.end_time)
+            : "In progress";
+
+          sessionDiv.innerHTML = `
+            <div class="session-icon">${icon}</div>
+            <div class="session-details">
+              <div class="session-range">${session.start_percent}% → ${
+            session.end_percent || "..."
+          }%</div>
+              <div class="session-meta">${formatDuration(
+                session.duration_minutes
+              )} • ${timeAgo}</div>
+            </div>
+          `;
+
+          elements.recentSessions.appendChild(sessionDiv);
+        });
+      }
+
+      function formatDuration(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = Math.floor(minutes % 60);
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      }
+
+      function formatTimeAgo(timestamp) {
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffMs = now - time;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor(
+          (diffMs % (1000 * 60 * 60)) / (1000 * 60)
+        );
+
+        if (diffHours > 24) {
+          const days = Math.floor(diffHours / 24);
+          return `${days}d ago`;
+        } else if (diffHours > 0) {
+          return `${diffHours}h ago`;
+        } else {
+          return `${diffMinutes}m ago`;
+        }
+      }
 
       // Initial fetch
       fetchBluettiData();
