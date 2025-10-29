@@ -331,24 +331,106 @@ def get_activity_current():
         total_output = ac_output + dc_output
         total_capacity_wh = 6144  # AC200MAX + 2x B230
         remaining_wh = (battery_percent / 100) * total_capacity_wh
-        time_remaining_hours = remaining_wh / total_output if total_output > 0 else float('inf')
         
         is_charging = ac_input > 0 or dc_input > 0
         
-        # Format time remaining
-        if time_remaining_hours == float('inf'):
-            formatted_time = "∞"
-        else:
-            days = int(time_remaining_hours // 24)
-            remaining_hours = int(time_remaining_hours % 24)
-            minutes = int((time_remaining_hours % 1) * 60)
-            
-            if days > 0:
-                formatted_time = f"{days}d {remaining_hours}h {minutes}m"
-            elif remaining_hours > 0:
-                formatted_time = f"{remaining_hours}h {minutes}m"
-            else:
-                formatted_time = f"{minutes}m"
+        # Get time remaining from discharge analysis (more accurate)
+        time_remaining_hours = float('inf')
+        formatted_time = "∞"
+        
+        if not is_charging and os.path.exists(BATTERY_DB_PATH):
+            try:
+                # Get discharge analysis data for accurate time remaining
+                with sqlite3.connect(BATTERY_DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Get the most recent discharge session for current battery level
+                    cursor.execute('''
+                        SELECT battery_percent, timestamp
+                        FROM discharge_sessions 
+                        ORDER BY timestamp DESC 
+                        LIMIT 1
+                    ''')
+                    latest = cursor.fetchone()
+                    
+                    if latest:
+                        current_battery, current_timestamp = latest
+                        
+                        # Calculate statistics from all sessions in the last 24 hours
+                        cursor.execute('''
+                            SELECT 
+                                AVG(discharge_rate_percent_per_hour) as avg_discharge_rate,
+                                AVG(avg_power_consumption) as avg_power,
+                                COUNT(*) as session_count
+                            FROM discharge_sessions 
+                            WHERE timestamp >= datetime('now', '-24 hours')
+                        ''')
+                        stats = cursor.fetchone()
+                        
+                        if stats and stats[2] > 0:  # session_count
+                            avg_discharge_rate, avg_power, session_count = stats
+                            
+                            # Calculate time-based discharge rate from battery level changes
+                            cursor.execute('''
+                                SELECT battery_percent, timestamp
+                                FROM discharge_sessions 
+                                WHERE timestamp >= datetime('now', '-12 hours')
+                                ORDER BY timestamp ASC
+                            ''')
+                            sessions = cursor.fetchall()
+                            
+                            # Calculate actual discharge rate
+                            if len(sessions) >= 3:
+                                first_battery = sessions[0][0]
+                                last_battery = sessions[-1][0]
+                                first_time = datetime.fromisoformat(sessions[0][1])
+                                last_time = datetime.fromisoformat(sessions[-1][1])
+                                
+                                time_diff_hours = (last_time - first_time).total_seconds() / 3600
+                                battery_diff = first_battery - last_battery
+                                
+                                if time_diff_hours >= 2 and battery_diff > 0:
+                                    actual_discharge_rate = battery_diff / time_diff_hours
+                                else:
+                                    if avg_power > 0:
+                                        actual_discharge_rate = (avg_power / total_capacity_wh) * 100
+                                    else:
+                                        actual_discharge_rate = avg_discharge_rate or 0
+                            else:
+                                if avg_power > 0:
+                                    actual_discharge_rate = (avg_power / total_capacity_wh) * 100
+                                else:
+                                    actual_discharge_rate = avg_discharge_rate or 0
+                            
+                            # Calculate estimated time remaining
+                            if actual_discharge_rate > 0:
+                                time_remaining_hours = current_battery / actual_discharge_rate
+                                
+                                # Format time remaining
+                                days = int(time_remaining_hours // 24)
+                                remaining_hours = int(time_remaining_hours % 24)
+                                minutes = int((time_remaining_hours % 1) * 60)
+                                
+                                if days > 0:
+                                    formatted_time = f"{days}d {remaining_hours}h {minutes}m"
+                                elif remaining_hours > 0:
+                                    formatted_time = f"{remaining_hours}h {minutes}m"
+                                else:
+                                    formatted_time = f"{minutes}m"
+            except Exception as e:
+                # Fallback to simple calculation if discharge analysis fails
+                time_remaining_hours = remaining_wh / total_output if total_output > 0 else float('inf')
+                if time_remaining_hours != float('inf'):
+                    days = int(time_remaining_hours // 24)
+                    remaining_hours = int(time_remaining_hours % 24)
+                    minutes = int((time_remaining_hours % 1) * 60)
+                    
+                    if days > 0:
+                        formatted_time = f"{days}d {remaining_hours}h {minutes}m"
+                    elif remaining_hours > 0:
+                        formatted_time = f"{remaining_hours}h {minutes}m"
+                    else:
+                        formatted_time = f"{minutes}m"
         
         result = {
             'battery_percent': battery_percent,
