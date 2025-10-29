@@ -912,6 +912,64 @@ def clear_discharge_data():
         logger.error(f"Error clearing discharge data: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/discharge/interval', methods=['GET'])
+def get_discharge_interval():
+    """Get current discharge logging interval"""
+    try:
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Get the current interval setting
+            cursor.execute('''
+                SELECT setting_value FROM discharge_settings 
+                WHERE setting_name = 'interval_minutes'
+            ''')
+            
+            result = cursor.fetchone()
+            interval = int(result[0]) if result else 10
+            
+            return jsonify({
+                'interval_minutes': interval,
+                'interval_label': f"{interval} minutes" if interval < 60 else f"{interval // 60} hour{'s' if interval // 60 > 1 else ''}"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting discharge interval: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/discharge/interval', methods=['POST'])
+def set_discharge_interval():
+    """Set discharge logging interval"""
+    try:
+        data = request.get_json()
+        if not data or 'interval_minutes' not in data:
+            return jsonify({'error': 'interval_minutes is required'}), 400
+        
+        interval = int(data['interval_minutes'])
+        if interval < 1 or interval > 1440:  # 1 minute to 24 hours
+            return jsonify({'error': 'Interval must be between 1 and 1440 minutes'}), 400
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Update or insert the interval setting
+            cursor.execute('''
+                INSERT OR REPLACE INTO discharge_settings (setting_name, setting_value, updated_at)
+                VALUES ('interval_minutes', ?, CURRENT_TIMESTAMP)
+            ''', (str(interval),))
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Discharge logging interval set to {interval} minutes',
+                'interval_minutes': interval
+            })
+            
+    except Exception as e:
+        logger.error(f"Error setting discharge interval: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     # Start MQTT handler
     mqtt_handler = MQTTHandler()

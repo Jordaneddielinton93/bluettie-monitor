@@ -20,6 +20,8 @@ echo $(date): bluetti-mqtt started with PID $BLUETTI_PID >> /home/pi/bluetti-mon
 
 # Start battery logger in background
 echo 'Starting battery logger...'
+cd /home/pi/bluetti-monitor
+source venv/bin/activate
 nohup python3 battery_logger.py > /home/pi/bluetti-monitor/battery_logger.log 2>&1 &
 BATTERY_LOGGER_PID=$!
 echo Battery logger PID: $BATTERY_LOGGER_PID
@@ -67,6 +69,7 @@ while true; do
     if ! pgrep -f battery_logger.py > /dev/null; then
         echo $(date): Battery logger process died, restarting... >> /home/pi/bluetti-monitor/service.log
         cd /home/pi/bluetti-monitor
+        source venv/bin/activate
         nohup python3 battery_logger.py > /home/pi/bluetti-monitor/battery_logger.log 2>&1 &
     fi
     

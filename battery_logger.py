@@ -268,18 +268,109 @@ class BatteryLogger:
         def discharge_worker():
             while True:
                 try:
-                    # Log discharge data immediately on startup
-                    self._log_hourly_discharge()
+                    # Check if we need to log discharge data based on time comparison
+                    self._check_and_log_discharge()
                     
-                    # Then wait for the next interval (10 minutes = 600 seconds)
-                    time.sleep(600)  # 10 minutes
+                    # Check every minute to see if we need to log
+                    time.sleep(60)  # Check every minute
                 except Exception as e:
                     logger.error(f"Error in discharge worker: {e}")
-                    time.sleep(600)  # Wait 10 minutes before retrying
+                    time.sleep(60)  # Wait 1 minute before retrying
         
         thread = threading.Thread(target=discharge_worker, daemon=True)
         thread.start()
-        logger.info("Discharge logging timer started (10-minute intervals)")
+        logger.info("Discharge logging timer started (time-based checking)")
+
+    def _check_and_log_discharge(self):
+        """Check if we need to log discharge data based on selected interval"""
+        try:
+            if not self.latest_data:
+                return
+            
+            # Get the selected interval from the database (default to 10 minutes)
+            interval_minutes = self._get_discharge_interval()
+            
+            # Check if we need to log based on the last logged time
+            with self.db_lock:
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Get the most recent discharge session
+                    cursor.execute('''
+                        SELECT timestamp FROM discharge_sessions 
+                        ORDER BY timestamp DESC 
+                        LIMIT 1
+                    ''')
+                    last_session = cursor.fetchone()
+                    
+                    current_time = datetime.now()
+                    should_log = False
+                    
+                    if last_session:
+                        last_time = datetime.fromisoformat(last_session[0])
+                        time_diff = (current_time - last_time).total_seconds() / 60  # minutes
+                        
+                        # Log if enough time has passed
+                        if time_diff >= interval_minutes:
+                            should_log = True
+                            logger.info(f"Time to log discharge: {time_diff:.1f} minutes since last log (interval: {interval_minutes} min)")
+                    else:
+                        # No previous logs, log immediately
+                        should_log = True
+                        logger.info("No previous discharge logs found, logging immediately")
+                    
+                    if should_log:
+                        self._log_hourly_discharge()
+                        
+        except Exception as e:
+            logger.error(f"Error checking discharge logging: {e}")
+
+    def _get_discharge_interval(self):
+        """Get the selected discharge logging interval from database"""
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                
+                # Check if we have a settings table for discharge interval
+                cursor.execute('''
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='discharge_settings'
+                ''')
+                
+                if not cursor.fetchone():
+                    # Create settings table if it doesn't exist
+                    cursor.execute('''
+                        CREATE TABLE discharge_settings (
+                            id INTEGER PRIMARY KEY,
+                            setting_name TEXT UNIQUE NOT NULL,
+                            setting_value TEXT NOT NULL,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        )
+                    ''')
+                    
+                    # Insert default interval (10 minutes)
+                    cursor.execute('''
+                        INSERT INTO discharge_settings (setting_name, setting_value)
+                        VALUES ('interval_minutes', '10')
+                    ''')
+                    conn.commit()
+                    return 10
+                
+                # Get the current interval setting
+                cursor.execute('''
+                    SELECT setting_value FROM discharge_settings 
+                    WHERE setting_name = 'interval_minutes'
+                ''')
+                
+                result = cursor.fetchone()
+                if result:
+                    return int(result[0])
+                else:
+                    return 10  # Default to 10 minutes
+                    
+        except Exception as e:
+            logger.error(f"Error getting discharge interval: {e}")
+            return 10  # Default to 10 minutes
 
     def _take_snapshot(self):
         """Take a snapshot of current battery state"""

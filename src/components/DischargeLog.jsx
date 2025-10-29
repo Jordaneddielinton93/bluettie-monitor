@@ -50,10 +50,44 @@ export default function DischargeLog() {
     );
   };
 
-  const handleTimeIntervalChange = (newInterval) => {
+  const handleTimeIntervalChange = async (newInterval) => {
     setTimeInterval(newInterval);
     localStorage.setItem("dischargeTimeInterval", newInterval);
     setIsDropdownOpen(false);
+    
+    // Convert interval to minutes and update database
+    const intervalMinutes = getIntervalMinutes(newInterval);
+    try {
+      const response = await fetch(`${API_BASE}/api/discharge/interval`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          interval_minutes: intervalMinutes,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error("Error updating discharge interval:", errData.error);
+      }
+    } catch (err) {
+      console.error("Error updating discharge interval:", err);
+    }
+  };
+
+  const getIntervalMinutes = (interval) => {
+    switch (interval) {
+      case "10min": return 10;
+      case "20min": return 20;
+      case "30min": return 30;
+      case "40min": return 40;
+      case "50min": return 50;
+      case "hourly": return 60;
+      case "daily": return 1440;
+      default: return 10;
+    }
   };
 
   const formatTimeAgo = (timestamp) => {
