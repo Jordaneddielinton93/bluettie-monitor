@@ -100,11 +100,19 @@ export default function ActivityLog() {
           <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-emerald-500/20 to-cyan-400/20 rounded-lg blur-sm"></div>
           <div className="relative bg-slate-900/50 backdrop-blur-sm border border-green-400/30 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="group relative">
+              <div className="relative group" 
+                   onMouseEnter={(e) => {
+                     const tooltip = e.currentTarget.querySelector('.core-status-tooltip');
+                     if (tooltip) tooltip.style.opacity = '1';
+                   }}
+                   onMouseLeave={(e) => {
+                     const tooltip = e.currentTarget.querySelector('.core-status-tooltip');
+                     if (tooltip) tooltip.style.opacity = '0';
+                   }}>
                 <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 font-mono">
                   CORE STATUS
                 </h4>
-                <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-green-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="core-status-tooltip absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-green-400/30 rounded-lg shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none z-10 w-64">
                   <div className="text-green-300 text-sm font-mono mb-1">
                     CORE STATUS
                   </div>
@@ -177,11 +185,19 @@ export default function ActivityLog() {
         <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 via-pink-500/10 to-cyan-400/10 rounded-lg blur-sm"></div>
         <div className="relative bg-slate-900/50 backdrop-blur-sm border border-purple-400/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <div className="group relative">
+            <div className="relative group"
+                 onMouseEnter={(e) => {
+                   const tooltip = e.currentTarget.querySelector('.charge-session-tooltip');
+                   if (tooltip) tooltip.style.opacity = '1';
+                 }}
+                 onMouseLeave={(e) => {
+                   const tooltip = e.currentTarget.querySelector('.charge-session-tooltip');
+                   if (tooltip) tooltip.style.opacity = '0';
+                 }}>
               <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-mono">
                 CHARGE SESSION LOG
               </h3>
-              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-purple-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+              <div className="charge-session-tooltip absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-purple-400/30 rounded-lg shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none z-10 w-64">
                 <div className="text-purple-300 text-sm font-mono mb-1">
                   CHARGE SESSION LOG
                 </div>
@@ -268,11 +284,19 @@ export default function ActivityLog() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-cyan-500/10 to-teal-400/10 rounded-lg blur-sm"></div>
           <div className="relative bg-slate-900/50 backdrop-blur-sm border border-blue-400/30 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="group relative">
+              <div className="relative group"
+                   onMouseEnter={(e) => {
+                     const tooltip = e.currentTarget.querySelector('.core-level-trend-tooltip');
+                     if (tooltip) tooltip.style.opacity = '1';
+                   }}
+                   onMouseLeave={(e) => {
+                     const tooltip = e.currentTarget.querySelector('.core-level-trend-tooltip');
+                     if (tooltip) tooltip.style.opacity = '0';
+                   }}>
                 <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 font-mono">
                   CORE LEVEL TREND
                 </h3>
-                <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-blue-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="core-level-trend-tooltip absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-blue-400/30 rounded-lg shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none z-10 w-64">
                   <div className="text-blue-300 text-sm font-mono mb-1">
                     CORE LEVEL TREND
                   </div>
