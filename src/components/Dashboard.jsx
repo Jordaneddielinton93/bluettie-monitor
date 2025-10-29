@@ -295,8 +295,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Drag and Drop Sections */}
-      <DragDropContainer sectionComponents={sectionComponents} />
+      {/* Static Sections */}
+      <div className="space-y-6">
+        {sectionComponents.battery_status}
+        {sectionComponents.power_flow}
+        {sectionComponents.activity_log}
+        {sectionComponents.discharge_analysis}
+        {sectionComponents.raw_data}
+      </div>
     </div>
   );
 }
