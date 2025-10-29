@@ -1,13 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDischargeData } from "../hooks/useDischargeData";
 import DischargeEditDrawer from "./DischargeEditDrawer";
-import { PencilIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 
 export default function DischargeLog() {
   const { currentDischarge, dischargeHistory, dischargeStats, loading, error, refreshAll } =
     useDischargeData();
   const [showMore, setShowMore] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [timeInterval, setTimeInterval] = useState("hourly");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const timeIntervalOptions = [
+    { value: "10min", label: "10 MINUTES" },
+    { value: "20min", label: "20 MINUTES" },
+    { value: "30min", label: "30 MINUTES" },
+    { value: "40min", label: "40 MINUTES" },
+    { value: "50min", label: "50 MINUTES" },
+    { value: "hourly", label: "HOURLY" },
+    { value: "daily", label: "DAILY" },
+  ];
+
+  const getCurrentIntervalLabel = () => {
+    return timeIntervalOptions.find(opt => opt.value === timeInterval)?.label || "HOURLY";
+  };
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return "Unknown";
@@ -49,25 +80,7 @@ export default function DischargeLog() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-900/20 border border-red-400/30 p-4 rounded-lg">
-        <div className="flex items-center">
-          <div className="text-red-400 text-xl mr-3">⚠</div>
-          <div>
-            <div className="text-red-300 font-mono text-sm">SYSTEM ERROR</div>
-            <div className="text-gray-400 text-xs font-mono">{error}</div>
-          </div>
-        </div>
-        <button
-          onClick={refreshAll}
-          className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-mono rounded transition-colors"
-        >
-          RETRY
-        </button>
-      </div>
-    );
-  }
+  // Don't show error state - just show no data message
 
   return (
     <div className="space-y-6">
@@ -88,8 +101,36 @@ export default function DischargeLog() {
                   <PencilIcon className="h-4 w-4 mr-1" />
                   EDIT
                 </button>
-                <div className="text-xs text-orange-300 font-mono">
-                  HOURLY PREDICTIONS
+                {/* Time Interval Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="px-3 py-1 bg-slate-700/50 hover:bg-slate-600/50 text-orange-300 hover:text-white font-mono text-xs rounded-lg transition-colors duration-200 flex items-center"
+                  >
+                    {getCurrentIntervalLabel()}
+                    <ChevronDownIcon className="h-3 w-3 ml-1" />
+                  </button>
+                  
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-orange-400/30 rounded-lg shadow-lg z-10 min-w-[120px]">
+                      {timeIntervalOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setTimeInterval(option.value);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs font-mono transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
+                            timeInterval === option.value
+                              ? "bg-orange-600/50 text-orange-300"
+                              : "text-gray-300 hover:bg-slate-700/50 hover:text-white"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -260,6 +301,78 @@ export default function DischargeLog() {
                   Sessions: {dischargeStats.total_sessions}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Discharge Data - Show Edit Button */}
+      {(!currentDischarge || !currentDischarge.data_available) && (
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 via-red-500/20 to-yellow-400/20 rounded-lg blur-sm"></div>
+          <div className="relative bg-slate-900/50 backdrop-blur-sm border border-orange-400/30 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 font-mono">
+                DISCHARGE ANALYSIS
+              </h4>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setIsEditDrawerOpen(true)}
+                  className="px-3 py-1 bg-orange-600/50 hover:bg-orange-600 text-orange-300 hover:text-white font-mono text-xs rounded-lg transition-colors duration-200 flex items-center"
+                >
+                  <PencilIcon className="h-4 w-4 mr-1" />
+                  EDIT
+                </button>
+                {/* Time Interval Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="px-3 py-1 bg-slate-700/50 hover:bg-slate-600/50 text-orange-300 hover:text-white font-mono text-xs rounded-lg transition-colors duration-200 flex items-center"
+                  >
+                    {getCurrentIntervalLabel()}
+                    <ChevronDownIcon className="h-3 w-3 ml-1" />
+                  </button>
+                  
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-orange-400/30 rounded-lg shadow-lg z-10 min-w-[120px]">
+                      {timeIntervalOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setTimeInterval(option.value);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs font-mono transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
+                            timeInterval === option.value
+                              ? "bg-orange-600/50 text-orange-300"
+                              : "text-gray-300 hover:bg-slate-700/50 hover:text-white"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center py-8">
+              <div className="text-orange-300 text-lg font-mono mb-2">
+                NO DISCHARGE DATA YET
+              </div>
+              <div className="text-gray-400 text-sm font-mono mb-4">
+                Discharge logs will appear after initial discharge.
+                <br />
+                You can manually add discharge data using the EDIT button.
+              </div>
+              <button
+                onClick={() => setIsEditDrawerOpen(true)}
+                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-mono rounded-lg transition-colors duration-200 flex items-center mx-auto"
+              >
+                <PencilIcon className="h-5 w-5 mr-2" />
+                ADD DISCHARGE DATA
+              </button>
             </div>
           </div>
         </div>
