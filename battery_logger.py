@@ -149,26 +149,33 @@ class BatteryLogger:
             dc_input = float(self.latest_data.get('dc_input_power', 0))
             battery_percent = float(self.latest_data.get('total_battery_percent', 0))
             
-            is_charging = ac_input > 0 or dc_input > 0
-            is_full = battery_percent >= 100
+            # Only consider it charging if input power is significant (>10W) or battery is actually gaining charge
+            is_charging = (ac_input > 10 or dc_input > 10) and battery_percent < 99.5
+            is_full = battery_percent >= 99.5
             
             # Start new charging session
             if is_charging and not self.current_charge_session and not is_full:
                 self.current_charge_session = {
                     'start_time': datetime.now(),
                     'start_percent': battery_percent,
-                    'charge_type': 'AC' if ac_input > 0 else 'DC',
-                    'input_powers': []
+                    'charge_type': 'AC' if ac_input > dc_input else 'DC',
+                    'input_powers': [max(ac_input, dc_input)],
+                    'last_charge_time': datetime.now()
                 }
                 logger.info(f"Started charging session at {battery_percent}%")
             
             # Update current session
             elif self.current_charge_session and is_charging:
                 self.current_charge_session['input_powers'].append(max(ac_input, dc_input))
+                self.current_charge_session['last_charge_time'] = datetime.now()
             
-            # End charging session
-            elif self.current_charge_session and (not is_charging or is_full):
-                self._end_charge_session(battery_percent)
+            # End charging session if not charging for more than 2 minutes or battery is full
+            elif self.current_charge_session:
+                time_since_last_charge = (datetime.now() - self.current_charge_session['last_charge_time']).total_seconds()
+                if not is_charging and time_since_last_charge > 120:  # 2 minutes
+                    self._end_charge_session(battery_percent)
+                elif is_full:
+                    self._end_charge_session(battery_percent)
                 
         except (ValueError, TypeError) as e:
             logger.warning(f"Error checking charging state: {e}")
@@ -184,25 +191,31 @@ class BatteryLogger:
             duration = (end_time - session['start_time']).total_seconds() / 60  # minutes
             avg_power = sum(session['input_powers']) / len(session['input_powers']) if session['input_powers'] else 0
             
-            with self.db_lock:
-                with sqlite3.connect(DB_PATH) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        INSERT INTO charge_sessions 
-                        (start_time, end_time, start_percent, end_percent, duration_minutes, charge_type, avg_input_power)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        session['start_time'].isoformat(),
-                        end_time.isoformat(),
-                        session['start_percent'],
-                        end_percent,
-                        int(duration),
-                        session['charge_type'],
-                        avg_power
-                    ))
-                    conn.commit()
+            # Only save sessions that lasted at least 5 minutes or had significant charge gain
+            percent_gained = end_percent - session['start_percent']
+            if duration >= 5 or percent_gained >= 1.0:
+                with self.db_lock:
+                    with sqlite3.connect(DB_PATH) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            INSERT INTO charge_sessions 
+                            (start_time, end_time, start_percent, end_percent, duration_minutes, charge_type, avg_input_power)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            session['start_time'].isoformat(),
+                            end_time.isoformat(),
+                            session['start_percent'],
+                            end_percent,
+                            int(duration),
+                            session['charge_type'],
+                            avg_power
+                        ))
+                        conn.commit()
+                
+                logger.info(f"Ended charging session: {session['start_percent']}% → {end_percent}% ({duration:.1f}min)")
+            else:
+                logger.info(f"Ignored short charging session: {session['start_percent']}% → {end_percent}% ({duration:.1f}min)")
             
-            logger.info(f"Ended charging session: {session['start_percent']}% → {end_percent}% ({duration:.1f}min)")
             self.current_charge_session = None
             
         except Exception as e:
