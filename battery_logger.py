@@ -471,5 +471,5 @@ class BatteryLogger:
                 self._end_charge_session(float(self.latest_data.get('total_battery_percent', 0)))
 
 if __name__ == "__main__":
-    logger = BatteryLogger()
-    logger.run()
+    battery_logger = BatteryLogger()
+    battery_logger.run()
