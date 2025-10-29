@@ -83,12 +83,12 @@ export default function Dashboard() {
   }
 
   // API returns data directly, not wrapped in device name
-  const deviceData = data;
+  const deviceData = data || {};
   const deviceName = "BLUETTI AC200MAX"; // Assuming a single main device for display
 
-  // Extract key metrics (property names may vary based on your Bluetti model)
+  // Extract key metrics with safe property access
   const batteryPercentage =
-    parseFloat(deviceData["total_battery_percent"]) || 0;
+    parseFloat(deviceData?.total_battery_percent) || 0;
   const batteryCapacity = 6144; // Total capacity in Wh
   const timeRemaining = currentStatus?.time_remaining || {
     hours: 0,
@@ -96,25 +96,25 @@ export default function Dashboard() {
     formatted: "0h 0m",
   };
 
-  const batteryVoltage = parseFloat(deviceData["total_battery_voltage"]) || 0;
-  const batteryCurrent = parseFloat(deviceData["internal_current_one"]) || 0;
+  const batteryVoltage = parseFloat(deviceData?.total_battery_voltage) || 0;
+  const batteryCurrent = parseFloat(deviceData?.internal_current_one) || 0;
 
-  const acInputPower = parseFloat(deviceData["ac_input_power"]) || 0;
-  const acOutputPower = parseFloat(deviceData["ac_output_power"]) || 0;
-  const acInputVoltage = parseFloat(deviceData["ac_input_voltage"]) || 0;
-  const acOutputVoltage = parseFloat(deviceData["ac_output_voltage"]) || 0;
+  const acInputPower = parseFloat(deviceData?.ac_input_power) || 0;
+  const acOutputPower = parseFloat(deviceData?.ac_output_power) || 0;
+  const acInputVoltage = parseFloat(deviceData?.ac_input_voltage) || 0;
+  const acOutputVoltage = parseFloat(deviceData?.ac_output_voltage) || 0;
 
-  const dcInputPower = parseFloat(deviceData["dc_input_power"]) || 0;
-  const dcOutputPower = parseFloat(deviceData["dc_output_power"]) || 0;
+  const dcInputPower = parseFloat(deviceData?.dc_input_power) || 0;
+  const dcOutputPower = parseFloat(deviceData?.dc_output_power) || 0;
 
   // Calculate charging status based on input power
   const chargingStatus =
     acInputPower > 0 || dcInputPower > 0 ? "Charging" : "Not Charging";
 
   // Calculate device status based on power state and output mode
-  const powerOff = deviceData["power_off"] === "ON";
-  const acOutputMode = deviceData["ac_output_mode"];
-  const dcOutputOn = deviceData["dc_output_on"] === "ON";
+  const powerOff = deviceData?.power_off === "ON";
+  const acOutputMode = deviceData?.ac_output_mode;
+  const dcOutputOn = deviceData?.dc_output_on === "ON";
 
   let deviceStatus = "Unknown";
   if (powerOff) {
