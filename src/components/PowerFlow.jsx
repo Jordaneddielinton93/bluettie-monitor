@@ -10,8 +10,7 @@ export default function PowerFlow({ data }) {
   const dcInputPower = parseFloat(deviceData?.dc_input_power) || 0;
   const dcOutputPower = parseFloat(deviceData?.dc_output_power) || 0;
 
-  const batteryPercentage =
-    parseFloat(deviceData?.total_battery_percent) || 0;
+  const batteryPercentage = parseFloat(deviceData?.total_battery_percent) || 0;
   const batteryCapacity = 6144; // Total capacity: AC200MAX (2048) + 2x B230 (2048 each)
 
   return (

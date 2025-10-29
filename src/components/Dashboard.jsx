@@ -3,6 +3,7 @@ import StatusCard from "./StatusCard";
 import PowerFlow from "./PowerFlow";
 import ActivityLog from "./ActivityLog";
 import DischargeLog from "./DischargeLog";
+import DragDropContainer from "./DragDropContainer";
 import { useBatteryActivity } from "../hooks/useBatteryActivity";
 import {
   formatPower,
@@ -87,8 +88,7 @@ export default function Dashboard() {
   const deviceName = "BLUETTI AC200MAX"; // Assuming a single main device for display
 
   // Extract key metrics with safe property access
-  const batteryPercentage =
-    parseFloat(deviceData?.total_battery_percent) || 0;
+  const batteryPercentage = parseFloat(deviceData?.total_battery_percent) || 0;
   const batteryCapacity = 6144; // Total capacity in Wh
   const timeRemaining = currentStatus?.time_remaining || {
     hours: 0,
@@ -295,14 +295,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Static Sections */}
-      <div className="space-y-6">
-        {sectionComponents.battery_status}
-        {sectionComponents.power_flow}
-        {sectionComponents.activity_log}
-        {sectionComponents.discharge_analysis}
-        {sectionComponents.raw_data}
-      </div>
+      {/* Drag and Drop Sections */}
+      <DragDropContainer sectionComponents={sectionComponents} />
     </div>
   );
 }
