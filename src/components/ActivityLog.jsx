@@ -29,7 +29,11 @@ export default function ActivityLog() {
     } else if (diffHours > 0) {
       return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
     } else {
-      return "Just now";
+      // Show actual time instead of "Just now"
+      return time.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     }
   };
 
@@ -101,9 +105,13 @@ export default function ActivityLog() {
                   CORE STATUS
                 </h4>
                 <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-green-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
-                  <div className="text-green-300 text-sm font-mono mb-1">CORE STATUS</div>
+                  <div className="text-green-300 text-sm font-mono mb-1">
+                    CORE STATUS
+                  </div>
                   <div className="text-gray-300 text-xs font-mono">
-                    Real-time battery status showing current level, time remaining, power draw, and active charging sessions with progress tracking.
+                    Real-time battery status showing current level, time
+                    remaining, power draw, and active charging sessions with
+                    progress tracking.
                   </div>
                 </div>
               </div>
@@ -174,9 +182,13 @@ export default function ActivityLog() {
                 CHARGE SESSION LOG
               </h3>
               <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-purple-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
-                <div className="text-purple-300 text-sm font-mono mb-1">CHARGE SESSION LOG</div>
+                <div className="text-purple-300 text-sm font-mono mb-1">
+                  CHARGE SESSION LOG
+                </div>
                 <div className="text-gray-300 text-xs font-mono">
-                  Complete history of all charging sessions with duration, efficiency, power consumption, and charging speed analysis over time.
+                  Complete history of all charging sessions with duration,
+                  efficiency, power consumption, and charging speed analysis
+                  over time.
                 </div>
               </div>
             </div>
@@ -261,9 +273,13 @@ export default function ActivityLog() {
                   CORE LEVEL TREND
                 </h3>
                 <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-blue-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
-                  <div className="text-blue-300 text-sm font-mono mb-1">CORE LEVEL TREND</div>
+                  <div className="text-blue-300 text-sm font-mono mb-1">
+                    CORE LEVEL TREND
+                  </div>
                   <div className="text-gray-300 text-xs font-mono">
-                    Visual chart showing battery level changes over the last 24 hours. Each bar represents an hourly snapshot with color-coded levels.
+                    Visual chart showing battery level changes over the last 24
+                    hours. Each bar represents an hourly snapshot with
+                    color-coded levels.
                   </div>
                 </div>
               </div>
@@ -272,30 +288,38 @@ export default function ActivityLog() {
               </div>
             </div>
             <div className="h-32 flex items-end space-x-1 bg-slate-800/30 rounded-lg p-2">
-              {history
-                .slice(0, 24)
-                .reverse()
-                .map((point, index) => {
-                  const height = (point.battery_percent / 100) * 100;
-                  const color =
-                    point.battery_percent >= 80
-                      ? "bg-green-400"
-                      : point.battery_percent >= 50
-                      ? "bg-yellow-400"
-                      : point.battery_percent >= 20
-                      ? "bg-orange-400"
-                      : "bg-red-400";
-                  return (
-                    <div
-                      key={index}
-                      className={`flex-1 ${color} rounded-sm opacity-80 hover:opacity-100 transition-opacity`}
-                      style={{ height: `${Math.max(height, 2)}%` }}
-                      title={`${point.battery_percent?.toFixed(
-                        1
-                      )}% at ${new Date(point.timestamp).toLocaleTimeString()}`}
-                    ></div>
-                  );
-                })}
+              {history.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-gray-400 text-sm font-mono">
+                  NO DATA YET
+                </div>
+              ) : (
+                history
+                  .slice(0, 24)
+                  .reverse()
+                  .map((point, index) => {
+                    const height = (point.battery_percent / 100) * 100;
+                    const color =
+                      point.battery_percent >= 80
+                        ? "bg-green-400"
+                        : point.battery_percent >= 50
+                        ? "bg-yellow-400"
+                        : point.battery_percent >= 20
+                        ? "bg-orange-400"
+                        : "bg-red-400";
+                    return (
+                      <div
+                        key={index}
+                        className={`flex-1 ${color} rounded-sm opacity-80 hover:opacity-100 transition-opacity`}
+                        style={{ height: `${Math.max(height, 2)}%` }}
+                        title={`${point.battery_percent?.toFixed(
+                          1
+                        )}% at ${new Date(
+                          point.timestamp
+                        ).toLocaleTimeString()}`}
+                      ></div>
+                    );
+                  })
+              )}
             </div>
             <div className="mt-2 text-xs text-blue-300 font-mono text-center">
               LAST 24 HOURS (HOURLY SNAPSHOTS)

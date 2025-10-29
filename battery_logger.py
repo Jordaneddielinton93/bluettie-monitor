@@ -264,24 +264,22 @@ class BatteryLogger:
         logger.info("Snapshot timer started")
 
     def _start_hourly_timer(self):
-        """Start hourly discharge logging timer"""
-        def hourly_worker():
+        """Start configurable discharge logging timer"""
+        def discharge_worker():
             while True:
                 try:
-                    # Calculate seconds until next hour
-                    now = datetime.now()
-                    next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-                    sleep_seconds = (next_hour - now).total_seconds()
-                    
-                    time.sleep(sleep_seconds)
+                    # Log discharge data immediately on startup
                     self._log_hourly_discharge()
+                    
+                    # Then wait for the next interval (10 minutes = 600 seconds)
+                    time.sleep(600)  # 10 minutes
                 except Exception as e:
-                    logger.error(f"Error in hourly worker: {e}")
-                    time.sleep(3600)  # Wait an hour before retrying
+                    logger.error(f"Error in discharge worker: {e}")
+                    time.sleep(600)  # Wait 10 minutes before retrying
         
-        thread = threading.Thread(target=hourly_worker, daemon=True)
+        thread = threading.Thread(target=discharge_worker, daemon=True)
         thread.start()
-        logger.info("Hourly discharge timer started")
+        logger.info("Discharge logging timer started (10-minute intervals)")
 
     def _take_snapshot(self):
         """Take a snapshot of current battery state"""

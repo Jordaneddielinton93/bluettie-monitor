@@ -69,7 +69,11 @@ export default function DischargeLog() {
     } else if (diffHours > 0) {
       return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
     } else {
-      return "Just now";
+      // Show actual time instead of "Just now"
+      return time.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     }
   };
 

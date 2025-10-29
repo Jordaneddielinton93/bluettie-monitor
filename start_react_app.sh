@@ -18,6 +18,13 @@ BLUETTI_PID=$!
 echo bluetti-mqtt PID: $BLUETTI_PID
 echo $(date): bluetti-mqtt started with PID $BLUETTI_PID >> /home/pi/bluetti-monitor/service.log
 
+# Start battery logger in background
+echo 'Starting battery logger...'
+nohup python3 battery_logger.py > /home/pi/bluetti-monitor/battery_logger.log 2>&1 &
+BATTERY_LOGGER_PID=$!
+echo Battery logger PID: $BATTERY_LOGGER_PID
+echo $(date): Battery logger started with PID $BATTERY_LOGGER_PID >> /home/pi/bluetti-monitor/service.log
+
 # Start API server in background
 echo 'Starting API server...'
 nohup python3 api_server.py > /home/pi/bluetti-monitor/api_server.log 2>&1 &
@@ -41,6 +48,7 @@ echo '📱 Mobile: http://192.168.1.145:8083/mobile_dashboard.html'
 echo ''
 echo 'PIDs:'
 echo "bluetti-mqtt: $BLUETTI_PID"
+echo "battery-logger: $BATTERY_LOGGER_PID"
 echo "API server: $API_PID"
 echo "React app: $REACT_PID"
 echo $(date): Bluetti Monitor Service fully started >> /home/pi/bluetti-monitor/service.log
@@ -50,14 +58,20 @@ while true; do
     sleep 60
     # Check if processes are still running
     if ! pgrep -f bluetti-mqtt > /dev/null; then
-        echo $(date): bluetti-mqtt process died, restarting... >> /home/pi/bluetti-monitor/service.log
+        echo $(date): bluetti-mqtt process died, restarting... >> /home/pi/bluetti-monitor/service.log                                                                                              
         cd /home/pi/bluetti-monitor
         source venv/bin/activate
-        nohup bluetti-mqtt --broker 127.0.0.1 --port 1883 --ha-config none 00:15:83:82:0B:B1 > /home/pi/bluetti-monitor/bluetti_mqtt.log 2>&1 &
+        nohup bluetti-mqtt --broker 127.0.0.1 --port 1883 --ha-config none 00:15:83:82:0B:B1 > /home/pi/bluetti-monitor/bluetti_mqtt.log 2>&1 &                                                     
+    fi
+    
+    if ! pgrep -f battery_logger.py > /dev/null; then
+        echo $(date): Battery logger process died, restarting... >> /home/pi/bluetti-monitor/service.log
+        cd /home/pi/bluetti-monitor
+        nohup python3 battery_logger.py > /home/pi/bluetti-monitor/battery_logger.log 2>&1 &
     fi
     
     if ! pgrep -f api_server.py > /dev/null; then
-        echo $(date): API server process died, restarting... >> /home/pi/bluetti-monitor/service.log
+        echo $(date): API server process died, restarting... >> /home/pi/bluetti-monitor/service.log                                                                                                
         cd /home/pi/bluetti-monitor
         nohup python3 api_server.py > /home/pi/bluetti-monitor/api_server.log 2>&1 &
     fi
