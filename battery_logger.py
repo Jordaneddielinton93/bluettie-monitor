@@ -284,7 +284,11 @@ class BatteryLogger:
     def _check_and_log_discharge(self):
         """Check if we need to log discharge data based on selected interval"""
         try:
+            # Get fresh data from API server instead of relying on MQTT
+            self._fetch_latest_data_from_api()
+            
             if not self.latest_data:
+                logger.warning("No data available from API server")
                 return
             
             # Get the selected interval from the database (default to 10 minutes)
@@ -324,6 +328,27 @@ class BatteryLogger:
                         
         except Exception as e:
             logger.error(f"Error checking discharge logging: {e}")
+
+    def _fetch_latest_data_from_api(self):
+        """Fetch latest data from API server with retry"""
+        import requests
+        import time
+        
+        for attempt in range(3):  # Try 3 times
+            try:
+                response = requests.get('http://localhost:8083/api/bluetti', timeout=5)
+                if response.status_code == 200:
+                    self.latest_data = response.json()
+                    logger.debug(f"Fetched data from API: {len(self.latest_data)} fields")
+                    return
+                else:
+                    logger.warning(f"API server returned status {response.status_code}")
+            except Exception as e:
+                if attempt < 2:  # Don't log error on last attempt
+                    logger.debug(f"API connection attempt {attempt + 1} failed: {e}")
+                    time.sleep(2)  # Wait 2 seconds before retry
+                else:
+                    logger.error(f"Error fetching data from API after 3 attempts: {e}")
 
     def _get_discharge_interval(self):
         """Get the selected discharge logging interval from database"""

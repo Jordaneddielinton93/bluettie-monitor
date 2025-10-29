@@ -18,10 +18,11 @@ BLUETTI_PID=$!
 echo bluetti-mqtt PID: $BLUETTI_PID
 echo $(date): bluetti-mqtt started with PID $BLUETTI_PID >> /home/pi/bluetti-monitor/service.log
 
-# Start battery logger in background
+# Start battery logger in background (with delay to ensure API server is ready)
 echo 'Starting battery logger...'
 cd /home/pi/bluetti-monitor
 source venv/bin/activate
+sleep 10  # Wait for API server to be ready
 nohup python3 battery_logger.py > /home/pi/bluetti-monitor/battery_logger.log 2>&1 &
 BATTERY_LOGGER_PID=$!
 echo Battery logger PID: $BATTERY_LOGGER_PID
