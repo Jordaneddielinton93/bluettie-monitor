@@ -3,7 +3,6 @@ import StatusCard from "./StatusCard";
 import PowerFlow from "./PowerFlow";
 import ActivityLog from "./ActivityLog";
 import DischargeLog from "./DischargeLog";
-import DragDropContainer from "./DragDropContainer";
 import { useBatteryActivity } from "../hooks/useBatteryActivity";
 import {
   formatPower,
@@ -70,7 +69,7 @@ export default function Dashboard() {
   }
 
   // API returns data directly, not wrapped in device name
-  const deviceData = data;
+  const deviceData = data || {};
   const deviceName = "BLUETTI AC200MAX"; // Assuming a single main device for display
 
   // Extract key metrics (property names may vary based on your Bluetti model)
@@ -114,6 +113,20 @@ export default function Dashboard() {
     deviceStatus = "AC Active";
   }
 
+  // Don't render drag and drop system until data is loaded
+  if (loading || !deviceData || Object.keys(deviceData).length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-cyan-400 font-mono text-lg">
+            LOADING DASHBOARD...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Define section components
   const sectionComponents = {
     battery_status: (
@@ -145,7 +158,9 @@ export default function Dashboard() {
             <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-mono">
               POWER FLOW
             </h3>
-            <div className="text-xs text-blue-300 font-mono">LIVE MONITORING</div>
+            <div className="text-xs text-blue-300 font-mono">
+              LIVE MONITORING
+            </div>
           </div>
           <PowerFlow
             acInputPower={acInputPower}
@@ -167,7 +182,9 @@ export default function Dashboard() {
             <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-mono">
               ACTIVITY LOG
             </h3>
-            <div className="text-xs text-purple-300 font-mono">CHARGE SESSIONS</div>
+            <div className="text-xs text-purple-300 font-mono">
+              CHARGE SESSIONS
+            </div>
           </div>
           <ActivityLog
             currentStatus={currentStatus}
@@ -252,7 +269,9 @@ export default function Dashboard() {
                 </span>
               </div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-cyan-300 text-sm font-mono">CHARGING</span>
+                <span className="text-cyan-300 text-sm font-mono">
+                  CHARGING
+                </span>
                 <span className="text-yellow-400 text-sm font-mono">
                   {chargingStatus}
                 </span>
