@@ -338,7 +338,8 @@ def get_activity_current():
         time_remaining_hours = float('inf')
         formatted_time = "∞"
         
-        if not is_charging and os.path.exists(BATTERY_DB_PATH):
+        # Always try to get discharge analysis data for better estimates
+        if os.path.exists(BATTERY_DB_PATH):
             try:
                 # Get discharge analysis data for accurate time remaining
                 with sqlite3.connect(BATTERY_DB_PATH) as conn:
@@ -417,6 +418,10 @@ def get_activity_current():
                                     formatted_time = f"{remaining_hours}h {minutes}m"
                                 else:
                                     formatted_time = f"{minutes}m"
+                                
+                                # If charging, prefix with discharge estimate
+                                if is_charging:
+                                    formatted_time = f"~{formatted_time} (discharge)"
             except Exception as e:
                 # Fallback to simple calculation if discharge analysis fails
                 time_remaining_hours = remaining_wh / total_output if total_output > 0 else float('inf')
@@ -432,17 +437,27 @@ def get_activity_current():
                     else:
                         formatted_time = f"{minutes}m"
         
+        # Handle infinity values for JSON compatibility
+        if time_remaining_hours == float('inf'):
+            time_remaining_data = {
+                'hours': None,
+                'days': None,
+                'formatted': formatted_time
+            }
+        else:
+            time_remaining_data = {
+                'hours': time_remaining_hours,
+                'days': time_remaining_hours / 24,
+                'formatted': formatted_time
+            }
+        
         result = {
             'battery_percent': battery_percent,
             'battery_voltage': battery_voltage,
             'total_capacity_wh': total_capacity_wh,
             'remaining_capacity_wh': remaining_wh,
             'current_output_watts': total_output,
-            'time_remaining': {
-                'hours': time_remaining_hours,
-                'days': time_remaining_hours / 24,
-                'formatted': formatted_time
-            },
+            'time_remaining': time_remaining_data,
             'is_charging': is_charging,
             'timestamp': datetime.now().isoformat()
         }
