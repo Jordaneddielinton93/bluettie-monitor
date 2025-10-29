@@ -134,9 +134,17 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 via-emerald-500/10 to-teal-400/10 rounded-xl blur-xl"></div>
         <div className="relative bg-slate-800/90 backdrop-blur-sm border border-green-400/30 rounded-xl shadow-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 font-mono">
-              BATTERY STATUS
-            </h3>
+            <div className="group relative">
+              <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 font-mono">
+                BATTERY STATUS
+              </h3>
+              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-green-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="text-green-300 text-sm font-mono mb-1">BATTERY STATUS</div>
+                <div className="text-gray-300 text-xs font-mono">
+                  Real-time battery monitoring with individual pack details, voltage, current, and time remaining estimates. Shows total capacity and current charge level.
+                </div>
+              </div>
+            </div>
             <div className="text-xs text-green-300 font-mono">REAL-TIME</div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -181,9 +189,17 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-indigo-500/10 to-purple-400/10 rounded-xl blur-xl"></div>
         <div className="relative bg-slate-800/90 backdrop-blur-sm border border-blue-400/30 rounded-xl shadow-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-mono">
-              POWER FLOW
-            </h3>
+            <div className="group relative">
+              <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-mono">
+                POWER FLOW
+              </h3>
+              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-blue-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="text-blue-300 text-sm font-mono mb-1">POWER FLOW</div>
+                <div className="text-gray-300 text-xs font-mono">
+                  Visual representation of energy flow through your system. Shows AC/DC inputs, battery storage, and outputs with real-time power values and flow direction.
+                </div>
+              </div>
+            </div>
             <div className="text-xs text-blue-300 font-mono">
               LIVE MONITORING
             </div>
@@ -197,9 +213,17 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 via-pink-500/10 to-rose-400/10 rounded-xl blur-xl"></div>
         <div className="relative bg-slate-800/90 backdrop-blur-sm border border-purple-400/30 rounded-xl shadow-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-mono">
-              ACTIVITY LOG
-            </h3>
+            <div className="group relative">
+              <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-mono">
+                ACTIVITY LOG
+              </h3>
+              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-purple-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="text-purple-300 text-sm font-mono mb-1">ACTIVITY LOG</div>
+                <div className="text-gray-300 text-xs font-mono">
+                  Historical record of all charging sessions with duration, efficiency, and power consumption. Tracks charging patterns and battery health over time.
+                </div>
+              </div>
+            </div>
             <div className="text-xs text-purple-300 font-mono">
               CHARGE SESSIONS
             </div>
@@ -218,9 +242,17 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-r from-orange-400/10 via-red-500/10 to-yellow-400/10 rounded-xl blur-xl"></div>
         <div className="relative bg-slate-800/90 backdrop-blur-sm border border-orange-400/30 rounded-xl shadow-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 font-mono">
-              DISCHARGE ANALYSIS
-            </h3>
+            <div className="group relative">
+              <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 font-mono">
+                DISCHARGE ANALYSIS
+              </h3>
+              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-orange-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="text-orange-300 text-sm font-mono mb-1">DISCHARGE ANALYSIS</div>
+                <div className="text-gray-300 text-xs font-mono">
+                  Advanced battery discharge monitoring with hourly predictions, rate analysis, and time remaining estimates. Configurable logging intervals for detailed tracking.
+                </div>
+              </div>
+            </div>
             <div className="text-xs text-orange-300 font-mono">
               HOURLY PREDICTIONS
             </div>
@@ -234,9 +266,17 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-r from-gray-400/10 via-slate-500/10 to-zinc-400/10 rounded-xl blur-xl"></div>
         <div className="relative bg-slate-800/90 backdrop-blur-sm border border-gray-400/30 rounded-xl shadow-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-400 to-slate-400 font-mono">
-              RAW DATA
-            </h3>
+            <div className="group relative">
+              <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-400 to-slate-400 font-mono">
+                RAW DATA
+              </h3>
+              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 border border-gray-400/30 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 w-64">
+                <div className="text-gray-300 text-sm font-mono mb-1">RAW DATA</div>
+                <div className="text-gray-300 text-xs font-mono">
+                  Complete technical data feed showing all MQTT values, activity logs, current status, and statistics. Useful for debugging and advanced monitoring.
+                </div>
+              </div>
+            </div>
             <div className="text-xs text-gray-300 font-mono">DEBUG INFO</div>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
