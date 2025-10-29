@@ -2,16 +2,16 @@ import { formatPower } from "../utils/formatters";
 
 export default function PowerFlow({ data }) {
   // API returns data directly, not wrapped in device name
-  const deviceData = data;
+  const deviceData = data || {};
 
-  // Extract power values (these property names may vary based on your Bluetti model)
-  const acInputPower = parseFloat(deviceData["ac_input_power"]) || 0;
-  const acOutputPower = parseFloat(deviceData["ac_output_power"]) || 0;
-  const dcInputPower = parseFloat(deviceData["dc_input_power"]) || 0;
-  const dcOutputPower = parseFloat(deviceData["dc_output_power"]) || 0;
+  // Extract power values with safe property access
+  const acInputPower = parseFloat(deviceData?.ac_input_power) || 0;
+  const acOutputPower = parseFloat(deviceData?.ac_output_power) || 0;
+  const dcInputPower = parseFloat(deviceData?.dc_input_power) || 0;
+  const dcOutputPower = parseFloat(deviceData?.dc_output_power) || 0;
 
   const batteryPercentage =
-    parseFloat(deviceData["total_battery_percent"]) || 0;
+    parseFloat(deviceData?.total_battery_percent) || 0;
   const batteryCapacity = 6144; // Total capacity: AC200MAX (2048) + 2x B230 (2048 each)
 
   return (
