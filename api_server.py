@@ -558,7 +558,7 @@ def get_activity_stats():
 # Discharge Session API Endpoints
 @app.route('/api/discharge/current', methods=['GET'])
 def get_discharge_current():
-    """Get current discharge status and predictions"""
+    """Get current discharge status and predictions based on historical analysis"""
     try:
         if not os.path.exists(BATTERY_DB_PATH):
             return jsonify({'error': 'Database not available'}), 503
@@ -566,11 +566,9 @@ def get_discharge_current():
         with sqlite3.connect(BATTERY_DB_PATH) as conn:
             cursor = conn.cursor()
             
-            # Get the most recent discharge session
+            # Get the most recent discharge session for current battery level
             cursor.execute('''
-                SELECT battery_percent, discharge_rate_percent_per_hour, 
-                       estimated_hours_remaining, estimated_days_remaining,
-                       avg_power_consumption, timestamp
+                SELECT battery_percent, timestamp
                 FROM discharge_sessions 
                 ORDER BY timestamp DESC 
                 LIMIT 1
@@ -578,31 +576,91 @@ def get_discharge_current():
             latest = cursor.fetchone()
             
             if not latest:
-                return jsonify({'error': 'No discharge data available'}), 404
+                return jsonify({
+                    'data_available': False,
+                    'message': 'No discharge data available yet'
+                })
+            
+            current_battery, current_timestamp = latest
+            
+            # Calculate statistics from all sessions in the last 24 hours
+            cursor.execute('''
+                SELECT 
+                    AVG(discharge_rate_percent_per_hour) as avg_discharge_rate,
+                    AVG(avg_power_consumption) as avg_power,
+                    COUNT(*) as session_count,
+                    MIN(timestamp) as first_session,
+                    MAX(timestamp) as last_session
+                FROM discharge_sessions 
+                WHERE timestamp >= datetime('now', '-24 hours')
+            ''')
+            stats = cursor.fetchone()
+            
+            if not stats or stats[2] == 0:  # session_count
+                return jsonify({
+                    'data_available': False,
+                    'message': 'Insufficient data for analysis'
+                })
+            
+            avg_discharge_rate, avg_power, session_count, first_session, last_session = stats
+            
+            # Calculate time-based discharge rate from battery level changes
+            cursor.execute('''
+                SELECT battery_percent, timestamp
+                FROM discharge_sessions 
+                WHERE timestamp >= datetime('now', '-24 hours')
+                ORDER BY timestamp ASC
+            ''')
+            sessions = cursor.fetchall()
+            
+            # Calculate actual discharge rate from battery level changes
+            if len(sessions) >= 2:
+                first_battery = sessions[0][0]
+                last_battery = sessions[-1][0]
+                first_time = datetime.fromisoformat(sessions[0][1])
+                last_time = datetime.fromisoformat(sessions[-1][1])
                 
-            battery_percent, discharge_rate, est_hours, est_days, avg_power, timestamp = latest
+                time_diff_hours = (last_time - first_time).total_seconds() / 3600
+                battery_diff = first_battery - last_battery
+                
+                if time_diff_hours > 0:
+                    actual_discharge_rate = battery_diff / time_diff_hours
+                else:
+                    actual_discharge_rate = avg_discharge_rate or 0
+            else:
+                actual_discharge_rate = avg_discharge_rate or 0
+            
+            # Calculate estimated time remaining based on current battery and discharge rate
+            if actual_discharge_rate > 0:
+                estimated_hours_remaining = current_battery / actual_discharge_rate
+                estimated_days_remaining = estimated_hours_remaining / 24
+            else:
+                estimated_hours_remaining = 0
+                estimated_days_remaining = 0
             
             # Format time remaining
-            if est_days >= 1:
-                formatted_time = f"{int(est_days)}d {int(est_hours % 24)}h"
-            elif est_hours >= 1:
-                formatted_time = f"{int(est_hours)}h {int((est_hours % 1) * 60)}m"
+            if estimated_days_remaining >= 1:
+                formatted_time_remaining = f"{int(estimated_days_remaining)}d {int(estimated_hours_remaining % 24)}h"
+            elif estimated_hours_remaining >= 1:
+                formatted_time_remaining = f"{int(estimated_hours_remaining)}h {int((estimated_hours_remaining % 1) * 60)}m"
             else:
-                formatted_time = f"{int(est_hours * 60)}m"
+                formatted_time_remaining = f"{int(estimated_hours_remaining * 60)}m"
             
             return jsonify({
-                'battery_percent': battery_percent,
-                'discharge_rate_percent_per_hour': discharge_rate,
-                'estimated_hours_remaining': est_hours,
-                'estimated_days_remaining': est_days,
-                'formatted_time_remaining': formatted_time,
-                'avg_power_consumption': avg_power,
-                'last_updated': timestamp,
-                'data_available': True
+                'data_available': True,
+                'battery_percent': current_battery,
+                'discharge_rate_percent_per_hour': round(actual_discharge_rate, 2),
+                'estimated_hours_remaining': round(estimated_hours_remaining, 1),
+                'estimated_days_remaining': round(estimated_days_remaining, 1),
+                'avg_power_consumption': round(avg_power or 0, 1),
+                'last_updated': current_timestamp,
+                'formatted_time_remaining': formatted_time_remaining,
+                'analysis_period_hours': 24,
+                'sessions_analyzed': session_count
             })
             
     except Exception as e:
-        logger.error(f"Error getting discharge current: {e}")
+        logger.error(f"Error getting current discharge status: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/discharge/history', methods=['GET'])
