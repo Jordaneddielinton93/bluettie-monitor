@@ -188,15 +188,7 @@ export default function Dashboard() {
               LIVE MONITORING
             </div>
           </div>
-          <PowerFlow
-            acInputPower={acInputPower}
-            acOutputPower={acOutputPower}
-            dcInputPower={dcInputPower}
-            dcOutputPower={dcOutputPower}
-            batteryPercentage={batteryPercentage}
-            batteryCapacity={batteryCapacity}
-            deviceName={deviceName}
-          />
+          <PowerFlow data={deviceData} />
         </div>
       </div>
     ),
