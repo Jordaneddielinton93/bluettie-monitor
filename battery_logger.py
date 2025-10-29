@@ -107,6 +107,33 @@ class BatteryLogger:
                     )
                 ''')
                 
+                # Dashboard section order preferences table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS section_order (
+                        id INTEGER PRIMARY KEY,
+                        section_name TEXT UNIQUE NOT NULL,
+                        display_order INTEGER NOT NULL,
+                        is_visible BOOLEAN DEFAULT 1,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                
+                # Insert default section order if not exists
+                cursor.execute('SELECT COUNT(*) FROM section_order')
+                if cursor.fetchone()[0] == 0:
+                    default_sections = [
+                        ('battery_status', 1, 1),
+                        ('power_flow', 2, 1),
+                        ('activity_log', 3, 1),
+                        ('discharge_analysis', 4, 1),
+                        ('raw_data', 5, 1)
+                    ]
+                    cursor.executemany('''
+                        INSERT INTO section_order (section_name, display_order, is_visible)
+                        VALUES (?, ?, ?)
+                    ''', default_sections)
+                
                 # Create indexes for better performance
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON battery_snapshots(timestamp)')
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON charge_sessions(start_time)')

@@ -742,6 +742,101 @@ def get_discharge_stats():
         logger.error(f"Error getting discharge stats: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Section Order Management API Endpoints
+@app.route('/api/sections/order', methods=['GET'])
+def get_section_order():
+    """Get current section order and visibility settings"""
+    try:
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT section_name, display_order, is_visible 
+                FROM section_order 
+                ORDER BY display_order
+            ''')
+            sections = []
+            for row in cursor.fetchall():
+                sections.append({
+                    'name': row[0],
+                    'order': row[1],
+                    'visible': bool(row[2])
+                })
+            
+            return jsonify({
+                'sections': sections,
+                'count': len(sections)
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting section order: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sections/order', methods=['POST'])
+def update_section_order():
+    """Update section order and visibility settings"""
+    try:
+        data = request.get_json()
+        if not data or 'sections' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Update each section's order and visibility
+            for section in data['sections']:
+                cursor.execute('''
+                    UPDATE section_order 
+                    SET display_order = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE section_name = ?
+                ''', (section['order'], section['visible'], section['name']))
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Section order updated successfully'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error updating section order: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sections/reset', methods=['POST'])
+def reset_section_order():
+    """Reset section order to default"""
+    try:
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Reset to default order
+            default_sections = [
+                ('battery_status', 1, 1),
+                ('power_flow', 2, 1),
+                ('activity_log', 3, 1),
+                ('discharge_analysis', 4, 1),
+                ('raw_data', 5, 1)
+            ]
+            
+            # Clear existing data
+            cursor.execute('DELETE FROM section_order')
+            
+            # Insert default order
+            cursor.executemany('''
+                INSERT INTO section_order (section_name, display_order, is_visible)
+                VALUES (?, ?, ?)
+            ''', default_sections)
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Section order reset to default'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error resetting section order: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     # Start MQTT handler
     mqtt_handler = MQTTHandler()
