@@ -837,6 +837,81 @@ def reset_section_order():
         logger.error(f"Error resetting section order: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Discharge Data Edit API Endpoints
+@app.route('/api/discharge/edit', methods=['POST'])
+def edit_discharge_data():
+    """Edit discharge data manually"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        discharge_rate = data.get('discharge_rate_percent_per_hour')
+        estimated_hours = data.get('estimated_hours_remaining')
+        estimated_minutes = data.get('estimated_minutes_remaining')
+        
+        if discharge_rate is None or estimated_hours is None:
+            return jsonify({'error': 'discharge_rate_percent_per_hour and estimated_hours_remaining are required'}), 400
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Insert a new manual discharge session
+            cursor.execute('''
+                INSERT INTO discharge_sessions 
+                (timestamp, battery_percent, battery_voltage, total_output_power, 
+                 discharge_rate_percent_per_hour, estimated_hours_remaining, 
+                 estimated_days_remaining, avg_power_consumption, session_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                datetime.now().isoformat(),
+                100.0,  # Assume full battery for manual entry
+                0.0,    # No voltage data for manual entry
+                0.0,    # No power data for manual entry
+                discharge_rate,
+                estimated_hours,
+                estimated_hours / 24,
+                0.0,    # No power consumption data for manual entry
+                'manual'
+            ))
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Discharge data updated successfully',
+                'data': {
+                    'discharge_rate_percent_per_hour': discharge_rate,
+                    'estimated_hours_remaining': estimated_hours,
+                    'estimated_days_remaining': estimated_hours / 24
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error editing discharge data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/discharge/clear', methods=['POST'])
+def clear_discharge_data():
+    """Clear all discharge data"""
+    try:
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Clear all discharge sessions
+            cursor.execute('DELETE FROM discharge_sessions')
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'All discharge data cleared successfully'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error clearing discharge data: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     # Start MQTT handler
     mqtt_handler = MQTTHandler()

@@ -148,7 +148,8 @@ export default function Dashboard() {
                 {batteryPercentage.toFixed(1)}%
               </div>
               <div className="text-green-400 text-xs font-mono">
-                {formatEnergy((batteryPercentage / 100) * batteryCapacity)} / {formatEnergy(batteryCapacity)}
+                {formatEnergy((batteryPercentage / 100) * batteryCapacity)} /{" "}
+                {formatEnergy(batteryCapacity)}
               </div>
             </div>
             <div className="bg-slate-900/50 border border-blue-400/20 rounded-lg p-4">
@@ -158,9 +159,7 @@ export default function Dashboard() {
               <div className="text-white text-xl font-mono">
                 {timeRemaining.formatted}
               </div>
-              <div className="text-blue-400 text-xs font-mono">
-                ESTIMATED
-              </div>
+              <div className="text-blue-400 text-xs font-mono">ESTIMATED</div>
             </div>
             <div className="bg-slate-900/50 border border-yellow-400/20 rounded-lg p-4">
               <div className="text-yellow-300 text-sm font-mono mb-1">

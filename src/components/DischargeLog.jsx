@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useDischargeData } from "../hooks/useDischargeData";
+import DischargeEditDrawer from "./DischargeEditDrawer";
+import { PencilIcon } from "@heroicons/react/24/outline";
 
 export default function DischargeLog() {
   const { currentDischarge, dischargeHistory, dischargeStats, loading, error, refreshAll } =
     useDischargeData();
   const [showMore, setShowMore] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return "Unknown";
@@ -77,8 +80,17 @@ export default function DischargeLog() {
               <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 font-mono">
                 DISCHARGE ANALYSIS
               </h4>
-              <div className="text-xs text-orange-300 font-mono">
-                HOURLY PREDICTIONS
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setIsEditDrawerOpen(true)}
+                  className="px-3 py-1 bg-orange-600/50 hover:bg-orange-600 text-orange-300 hover:text-white font-mono text-xs rounded-lg transition-colors duration-200 flex items-center"
+                >
+                  <PencilIcon className="h-4 w-4 mr-1" />
+                  EDIT
+                </button>
+                <div className="text-xs text-orange-300 font-mono">
+                  HOURLY PREDICTIONS
+                </div>
               </div>
             </div>
             
@@ -252,6 +264,13 @@ export default function DischargeLog() {
           </div>
         </div>
       )}
+
+      {/* Edit Drawer */}
+      <DischargeEditDrawer
+        isOpen={isEditDrawerOpen}
+        onClose={() => setIsEditDrawerOpen(false)}
+        onDataUpdate={refreshAll}
+      />
     </div>
   );
 }
