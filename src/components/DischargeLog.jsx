@@ -8,7 +8,10 @@ export default function DischargeLog() {
     useDischargeData();
   const [showMore, setShowMore] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [timeInterval, setTimeInterval] = useState("hourly");
+  const [timeInterval, setTimeInterval] = useState(() => {
+    // Load from localStorage or default to "hourly"
+    return localStorage.getItem('dischargeTimeInterval') || "hourly";
+  });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -38,6 +41,12 @@ export default function DischargeLog() {
 
   const getCurrentIntervalLabel = () => {
     return timeIntervalOptions.find(opt => opt.value === timeInterval)?.label || "HOURLY";
+  };
+
+  const handleTimeIntervalChange = (newInterval) => {
+    setTimeInterval(newInterval);
+    localStorage.setItem('dischargeTimeInterval', newInterval);
+    setIsDropdownOpen(false);
   };
 
   const formatTimeAgo = (timestamp) => {
@@ -116,10 +125,7 @@ export default function DischargeLog() {
                       {timeIntervalOptions.map((option) => (
                         <button
                           key={option.value}
-                          onClick={() => {
-                            setTimeInterval(option.value);
-                            setIsDropdownOpen(false);
-                          }}
+                          onClick={() => handleTimeIntervalChange(option.value)}
                           className={`w-full px-3 py-2 text-left text-xs font-mono transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
                             timeInterval === option.value
                               ? "bg-orange-600/50 text-orange-300"
@@ -338,10 +344,7 @@ export default function DischargeLog() {
                       {timeIntervalOptions.map((option) => (
                         <button
                           key={option.value}
-                          onClick={() => {
-                            setTimeInterval(option.value);
-                            setIsDropdownOpen(false);
-                          }}
+                          onClick={() => handleTimeIntervalChange(option.value)}
                           className={`w-full px-3 py-2 text-left text-xs font-mono transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
                             timeInterval === option.value
                               ? "bg-orange-600/50 text-orange-300"
