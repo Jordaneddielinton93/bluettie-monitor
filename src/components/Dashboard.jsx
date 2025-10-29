@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import StatusCard from "./StatusCard";
 import PowerFlow from "./PowerFlow";
 import ActivityLog from "./ActivityLog";
+import DischargeLog from "./DischargeLog";
 import { useBatteryActivity } from "../hooks/useBatteryActivity";
 import {
   formatPower,
@@ -249,6 +250,22 @@ export default function Dashboard() {
             </div>
           </div>
           <ActivityLog />
+        </div>
+      </div>
+
+      {/* Discharge Log - Sci-Fi Style */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-400/10 via-red-500/10 to-yellow-400/10 rounded-xl blur-xl"></div>
+        <div className="relative bg-slate-800/90 backdrop-blur-sm border border-orange-400/30 rounded-xl shadow-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 font-mono">
+              DISCHARGE ANALYSIS
+            </h3>
+            <div className="text-xs text-orange-300 font-mono">
+              HOURLY PREDICTIONS
+            </div>
+          </div>
+          <DischargeLog />
         </div>
       </div>
 

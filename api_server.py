@@ -555,6 +555,193 @@ def get_activity_stats():
         logger.error(f"Error getting activity stats: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Discharge Session API Endpoints
+@app.route('/api/discharge/current', methods=['GET'])
+def get_discharge_current():
+    """Get current discharge status and predictions"""
+    try:
+        if not os.path.exists(BATTERY_DB_PATH):
+            return jsonify({'error': 'Database not available'}), 503
+            
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Get the most recent discharge session
+            cursor.execute('''
+                SELECT battery_percent, discharge_rate_percent_per_hour, 
+                       estimated_hours_remaining, estimated_days_remaining,
+                       avg_power_consumption, timestamp
+                FROM discharge_sessions 
+                ORDER BY timestamp DESC 
+                LIMIT 1
+            ''')
+            latest = cursor.fetchone()
+            
+            if not latest:
+                return jsonify({'error': 'No discharge data available'}), 404
+                
+            battery_percent, discharge_rate, est_hours, est_days, avg_power, timestamp = latest
+            
+            # Format time remaining
+            if est_days >= 1:
+                formatted_time = f"{int(est_days)}d {int(est_hours % 24)}h"
+            elif est_hours >= 1:
+                formatted_time = f"{int(est_hours)}h {int((est_hours % 1) * 60)}m"
+            else:
+                formatted_time = f"{int(est_hours * 60)}m"
+            
+            return jsonify({
+                'battery_percent': battery_percent,
+                'discharge_rate_percent_per_hour': discharge_rate,
+                'estimated_hours_remaining': est_hours,
+                'estimated_days_remaining': est_days,
+                'formatted_time_remaining': formatted_time,
+                'avg_power_consumption': avg_power,
+                'last_updated': timestamp,
+                'data_available': True
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting discharge current: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/discharge/history', methods=['GET'])
+def get_discharge_history():
+    """Get discharge session history"""
+    try:
+        if not os.path.exists(BATTERY_DB_PATH):
+            return jsonify({'error': 'Database not available'}), 503
+            
+        hours = request.args.get('hours', 24, type=int)
+        limit = request.args.get('limit', 50, type=int)
+        
+        # Limit to reasonable values
+        hours = min(hours, 168)  # Max 1 week
+        limit = min(limit, 200)  # Max 200 records
+        
+        cutoff_time = datetime.now() - timedelta(hours=hours)
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT timestamp, battery_percent, discharge_rate_percent_per_hour,
+                       estimated_hours_remaining, estimated_days_remaining,
+                       avg_power_consumption, total_output_power
+                FROM discharge_sessions 
+                WHERE timestamp >= ?
+                ORDER BY timestamp DESC 
+                LIMIT ?
+            ''', (cutoff_time.isoformat(), limit))
+            
+            sessions = []
+            for row in cursor.fetchall():
+                timestamp, battery_percent, discharge_rate, est_hours, est_days, avg_power, total_power = row
+                
+                # Format time remaining
+                if est_days >= 1:
+                    formatted_time = f"{int(est_days)}d {int(est_hours % 24)}h"
+                elif est_hours >= 1:
+                    formatted_time = f"{int(est_hours)}h {int((est_hours % 1) * 60)}m"
+                else:
+                    formatted_time = f"{int(est_hours * 60)}m"
+                
+                sessions.append({
+                    'timestamp': timestamp,
+                    'battery_percent': battery_percent,
+                    'discharge_rate_percent_per_hour': discharge_rate,
+                    'estimated_hours_remaining': est_hours,
+                    'estimated_days_remaining': est_days,
+                    'formatted_time_remaining': formatted_time,
+                    'avg_power_consumption': avg_power,
+                    'total_output_power': total_power
+                })
+            
+            return jsonify({
+                'sessions': sessions,
+                'count': len(sessions),
+                'period_hours': hours
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting discharge history: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/discharge/stats', methods=['GET'])
+def get_discharge_stats():
+    """Get discharge statistics"""
+    try:
+        if not os.path.exists(BATTERY_DB_PATH):
+            return jsonify({'error': 'Database not available'}), 503
+            
+        days = request.args.get('days', 7, type=int)
+        days = min(days, 30)  # Max 30 days
+        
+        cutoff_time = datetime.now() - timedelta(days=days)
+        
+        with sqlite3.connect(BATTERY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Get discharge statistics
+            cursor.execute('''
+                SELECT 
+                    COUNT(*) as total_sessions,
+                    AVG(discharge_rate_percent_per_hour) as avg_discharge_rate,
+                    MIN(discharge_rate_percent_per_hour) as min_discharge_rate,
+                    MAX(discharge_rate_percent_per_hour) as max_discharge_rate,
+                    AVG(avg_power_consumption) as avg_power_consumption,
+                    MIN(avg_power_consumption) as min_power_consumption,
+                    MAX(avg_power_consumption) as max_power_consumption,
+                    AVG(estimated_days_remaining) as avg_estimated_days
+                FROM discharge_sessions 
+                WHERE timestamp >= ? AND discharge_rate_percent_per_hour > 0
+            ''', (cutoff_time.isoformat(),))
+            
+            stats = cursor.fetchone()
+            
+            if not stats or stats[0] == 0:
+                return jsonify({
+                    'period_days': days,
+                    'total_sessions': 0,
+                    'discharge_rate': {
+                        'avg_percent_per_hour': 0,
+                        'min_percent_per_hour': 0,
+                        'max_percent_per_hour': 0
+                    },
+                    'power_consumption': {
+                        'avg_watts': 0,
+                        'min_watts': 0,
+                        'max_watts': 0
+                    },
+                    'predictions': {
+                        'avg_estimated_days': 0
+                    }
+                })
+            
+            total_sessions, avg_rate, min_rate, max_rate, avg_power, min_power, max_power, avg_est_days = stats
+            
+            return jsonify({
+                'period_days': days,
+                'total_sessions': total_sessions,
+                'discharge_rate': {
+                    'avg_percent_per_hour': round(avg_rate or 0, 2),
+                    'min_percent_per_hour': round(min_rate or 0, 2),
+                    'max_percent_per_hour': round(max_rate or 0, 2)
+                },
+                'power_consumption': {
+                    'avg_watts': round(avg_power or 0, 1),
+                    'min_watts': round(min_power or 0, 1),
+                    'max_watts': round(max_power or 0, 1)
+                },
+                'predictions': {
+                    'avg_estimated_days': round(avg_est_days or 0, 1)
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting discharge stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     # Start MQTT handler
     mqtt_handler = MQTTHandler()

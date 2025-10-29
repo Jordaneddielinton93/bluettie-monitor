@@ -44,6 +44,9 @@ class BatteryLogger:
         # Start snapshot timer
         self._start_snapshot_timer()
         
+        # Start hourly discharge logging timer
+        self._start_hourly_timer()
+        
         # Cleanup old data on startup
         self._cleanup_old_data()
 
@@ -88,9 +91,26 @@ class BatteryLogger:
                     )
                 ''')
                 
+                # Discharge sessions table (hourly tracking)
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS discharge_sessions (
+                        id INTEGER PRIMARY KEY,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        battery_percent REAL,
+                        battery_voltage REAL,
+                        total_output_power REAL,
+                        discharge_rate_percent_per_hour REAL,
+                        estimated_hours_remaining REAL,
+                        estimated_days_remaining REAL,
+                        avg_power_consumption REAL,
+                        session_type TEXT DEFAULT 'discharge'
+                    )
+                ''')
+                
                 # Create indexes for better performance
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON battery_snapshots(timestamp)')
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON charge_sessions(start_time)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_discharge_timestamp ON discharge_sessions(timestamp)')
                 
                 conn.commit()
                 logger.info("Database initialized successfully")
@@ -203,6 +223,26 @@ class BatteryLogger:
         thread.start()
         logger.info("Snapshot timer started")
 
+    def _start_hourly_timer(self):
+        """Start hourly discharge logging timer"""
+        def hourly_worker():
+            while True:
+                try:
+                    # Calculate seconds until next hour
+                    now = datetime.now()
+                    next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+                    sleep_seconds = (next_hour - now).total_seconds()
+                    
+                    time.sleep(sleep_seconds)
+                    self._log_hourly_discharge()
+                except Exception as e:
+                    logger.error(f"Error in hourly worker: {e}")
+                    time.sleep(3600)  # Wait an hour before retrying
+        
+        thread = threading.Thread(target=hourly_worker, daemon=True)
+        thread.start()
+        logger.info("Hourly discharge timer started")
+
     def _take_snapshot(self):
         """Take a snapshot of current battery state"""
         if not self.latest_data:
@@ -269,9 +309,13 @@ class BatteryLogger:
                     cursor.execute('DELETE FROM charge_sessions WHERE start_time < ?', (cutoff_date.isoformat(),))
                     sessions_deleted = cursor.rowcount
                     
+                    # Cleanup old discharge sessions
+                    cursor.execute('DELETE FROM discharge_sessions WHERE timestamp < ?', (cutoff_date.isoformat(),))
+                    discharge_deleted = cursor.rowcount
+                    
                     conn.commit()
                     
-            logger.info(f"Cleanup completed: {snapshots_deleted} snapshots, {sessions_deleted} sessions deleted")
+            logger.info(f"Cleanup completed: {snapshots_deleted} snapshots, {sessions_deleted} charge sessions, {discharge_deleted} discharge sessions deleted")
             
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
@@ -342,6 +386,78 @@ class BatteryLogger:
             return f"{remaining_hours}h {minutes}m"
         else:
             return f"{minutes}m"
+
+    def _log_hourly_discharge(self):
+        """Log hourly discharge data and calculate discharge rates"""
+        try:
+            if not self.latest_data:
+                return
+            
+            current_time = datetime.now()
+            battery_percent = float(self.latest_data.get('total_battery_percent', 0))
+            battery_voltage = float(self.latest_data.get('total_battery_voltage', 0))
+            total_output_power = float(self.latest_data.get('ac_output_power', 0)) + float(self.latest_data.get('dc_output_power', 0))
+            
+            # Get the last discharge session to calculate rate
+            with self.db_lock:
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Get the most recent discharge session
+                    cursor.execute('''
+                        SELECT battery_percent, timestamp, total_output_power
+                        FROM discharge_sessions 
+                        ORDER BY timestamp DESC 
+                        LIMIT 1
+                    ''')
+                    last_session = cursor.fetchone()
+                    
+                    discharge_rate = 0.0
+                    estimated_hours = 0.0
+                    estimated_days = 0.0
+                    avg_power = total_output_power
+                    
+                    if last_session:
+                        last_percent, last_timestamp, last_power = last_session
+                        last_time = datetime.fromisoformat(last_timestamp)
+                        hours_elapsed = (current_time - last_time).total_seconds() / 3600
+                        
+                        if hours_elapsed > 0 and last_percent > battery_percent:
+                            # Calculate discharge rate (% per hour)
+                            discharge_rate = (last_percent - battery_percent) / hours_elapsed
+                            
+                            # Calculate average power consumption
+                            avg_power = (last_power + total_output_power) / 2
+                            
+                            # Estimate remaining time based on current discharge rate
+                            if discharge_rate > 0:
+                                estimated_hours = battery_percent / discharge_rate
+                                estimated_days = estimated_hours / 24
+                    
+                    # Insert new discharge session
+                    cursor.execute('''
+                        INSERT INTO discharge_sessions 
+                        (timestamp, battery_percent, battery_voltage, total_output_power, 
+                         discharge_rate_percent_per_hour, estimated_hours_remaining, 
+                         estimated_days_remaining, avg_power_consumption, session_type)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        current_time.isoformat(),
+                        battery_percent,
+                        battery_voltage,
+                        total_output_power,
+                        discharge_rate,
+                        estimated_hours,
+                        estimated_days,
+                        avg_power,
+                        'discharge'
+                    ))
+                    
+                    conn.commit()
+                    logger.info(f"Logged hourly discharge: {battery_percent:.1f}% (rate: {discharge_rate:.2f}%/hr, est: {estimated_days:.1f} days)")
+                    
+        except Exception as e:
+            logger.error(f"Error logging hourly discharge: {e}")
 
     def run(self):
         """Main run loop"""
