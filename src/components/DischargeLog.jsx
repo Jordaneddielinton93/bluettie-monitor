@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import { useDischargeData } from "../hooks/useDischargeData";
-import DischargeEditDrawer from "./DischargeEditDrawer";
-import { PencilIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 export default function DischargeLog() {
-  const { currentDischarge, dischargeHistory, dischargeStats, loading, error, refreshAll } =
-    useDischargeData();
+  const {
+    currentDischarge,
+    dischargeHistory,
+    dischargeStats,
+    loading,
+    error,
+    refreshAll,
+  } = useDischargeData();
   const [showMore, setShowMore] = useState(false);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [timeInterval, setTimeInterval] = useState(() => {
     // Load from localStorage or default to "hourly"
-    return localStorage.getItem('dischargeTimeInterval') || "hourly";
+    return localStorage.getItem("dischargeTimeInterval") || "hourly";
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -23,9 +27,9 @@ export default function DischargeLog() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -40,12 +44,15 @@ export default function DischargeLog() {
   ];
 
   const getCurrentIntervalLabel = () => {
-    return timeIntervalOptions.find(opt => opt.value === timeInterval)?.label || "HOURLY";
+    return (
+      timeIntervalOptions.find((opt) => opt.value === timeInterval)?.label ||
+      "HOURLY"
+    );
   };
 
   const handleTimeIntervalChange = (newInterval) => {
     setTimeInterval(newInterval);
-    localStorage.setItem('dischargeTimeInterval', newInterval);
+    localStorage.setItem("dischargeTimeInterval", newInterval);
     setIsDropdownOpen(false);
   };
 
@@ -103,13 +110,6 @@ export default function DischargeLog() {
                 DISCHARGE ANALYSIS
               </h4>
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setIsEditDrawerOpen(true)}
-                  className="px-3 py-1 bg-orange-600/50 hover:bg-orange-600 text-orange-300 hover:text-white font-mono text-xs rounded-lg transition-colors duration-200 flex items-center"
-                >
-                  <PencilIcon className="h-4 w-4 mr-1" />
-                  EDIT
-                </button>
                 {/* Time Interval Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -119,7 +119,7 @@ export default function DischargeLog() {
                     {getCurrentIntervalLabel()}
                     <ChevronDownIcon className="h-3 w-3 ml-1" />
                   </button>
-                  
+
                   {isDropdownOpen && (
                     <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-orange-400/30 rounded-lg shadow-lg z-10 min-w-[120px]">
                       {timeIntervalOptions.map((option) => (
@@ -140,14 +140,15 @@ export default function DischargeLog() {
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="bg-slate-800/50 border border-orange-400/20 rounded-lg p-4">
                 <div className="text-orange-300 text-sm font-mono mb-1">
                   ESTIMATED RUNTIME
                 </div>
                 <div className="text-white text-xl font-mono">
-                  {currentDischarge.formatted_time_remaining || "Calculating..."}
+                  {currentDischarge.formatted_time_remaining ||
+                    "Calculating..."}
                 </div>
                 <div className="text-orange-400 text-xs font-mono">
                   BASED ON HISTORY
@@ -157,11 +158,20 @@ export default function DischargeLog() {
                 <div className="text-orange-300 text-sm font-mono mb-1">
                   DISCHARGE RATE
                 </div>
-                <div className={`text-xl font-mono ${getDischargeRateColor(currentDischarge.discharge_rate_percent_per_hour)}`}>
-                  {currentDischarge.discharge_rate_percent_per_hour?.toFixed(2) || 0}%/hr
+                <div
+                  className={`text-xl font-mono ${getDischargeRateColor(
+                    currentDischarge.discharge_rate_percent_per_hour
+                  )}`}
+                >
+                  {currentDischarge.discharge_rate_percent_per_hour?.toFixed(
+                    2
+                  ) || 0}
+                  %/hr
                 </div>
                 <div className="text-orange-400 text-xs font-mono">
-                  {getDischargeRateText(currentDischarge.discharge_rate_percent_per_hour)}
+                  {getDischargeRateText(
+                    currentDischarge.discharge_rate_percent_per_hour
+                  )}
                 </div>
               </div>
               <div className="bg-slate-800/50 border border-orange-400/20 rounded-lg p-4">
@@ -171,9 +181,7 @@ export default function DischargeLog() {
                 <div className="text-white text-xl font-mono">
                   {currentDischarge.avg_power_consumption?.toFixed(0) || 0}W
                 </div>
-                <div className="text-orange-400 text-xs font-mono">
-                  AVERAGE
-                </div>
+                <div className="text-orange-400 text-xs font-mono">AVERAGE</div>
               </div>
               <div className="bg-slate-800/50 border border-orange-400/20 rounded-lg p-4">
                 <div className="text-orange-300 text-sm font-mono mb-1">
@@ -207,7 +215,9 @@ export default function DischargeLog() {
           {dischargeHistory.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-blue-400 text-4xl mb-4">📊</div>
-              <p className="text-blue-300 font-mono">NO DISCHARGE DATA RECORDED</p>
+              <p className="text-blue-300 font-mono">
+                NO DISCHARGE DATA RECORDED
+              </p>
               <p className="text-gray-400 text-sm font-mono mt-2">
                 Hourly data will appear as the system collects information
               </p>
@@ -216,9 +226,13 @@ export default function DischargeLog() {
             <div className="space-y-4">
               {(showMore ? dischargeHistory : dischargeHistory.slice(0, 8)).map(
                 (session, index) => {
-                  const rateColor = getDischargeRateColor(session.discharge_rate_percent_per_hour);
-                  const rateText = getDischargeRateText(session.discharge_rate_percent_per_hour);
-                  
+                  const rateColor = getDischargeRateColor(
+                    session.discharge_rate_percent_per_hour
+                  );
+                  const rateText = getDischargeRateText(
+                    session.discharge_rate_percent_per_hour
+                  );
+
                   return (
                     <div
                       key={session.timestamp || index}
@@ -229,11 +243,16 @@ export default function DischargeLog() {
                           <div className="text-2xl">🔋</div>
                           <div>
                             <div className="text-white font-mono text-sm">
-                              {session.battery_percent?.toFixed(1)}% • {session.formatted_time_remaining} remaining
+                              {session.battery_percent?.toFixed(1)}% •{" "}
+                              {session.formatted_time_remaining} remaining
                             </div>
                             <div className="text-blue-300 font-mono text-xs">
-                              Rate: {session.discharge_rate_percent_per_hour?.toFixed(2)}%/hr • 
-                              Power: {session.avg_power_consumption?.toFixed(0)}W avg
+                              Rate:{" "}
+                              {session.discharge_rate_percent_per_hour?.toFixed(
+                                2
+                              )}
+                              %/hr • Power:{" "}
+                              {session.avg_power_consumption?.toFixed(0)}W avg
                             </div>
                           </div>
                         </div>
@@ -278,30 +297,53 @@ export default function DischargeLog() {
                 {dischargeStats.period_days} DAYS
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-800/50 border border-purple-400/20 rounded-lg p-4">
-                <div className="text-purple-300 text-sm font-mono mb-2">DISCHARGE RATE</div>
-                <div className="text-white font-mono text-sm">
-                  Avg: {dischargeStats.discharge_rate?.avg_percent_per_hour?.toFixed(2)}%/hr
+                <div className="text-purple-300 text-sm font-mono mb-2">
+                  DISCHARGE RATE
                 </div>
                 <div className="text-white font-mono text-sm">
-                  Range: {dischargeStats.discharge_rate?.min_percent_per_hour?.toFixed(2)} - {dischargeStats.discharge_rate?.max_percent_per_hour?.toFixed(2)}%/hr
+                  Avg:{" "}
+                  {dischargeStats.discharge_rate?.avg_percent_per_hour?.toFixed(
+                    2
+                  )}
+                  %/hr
+                </div>
+                <div className="text-white font-mono text-sm">
+                  Range:{" "}
+                  {dischargeStats.discharge_rate?.min_percent_per_hour?.toFixed(
+                    2
+                  )}{" "}
+                  -{" "}
+                  {dischargeStats.discharge_rate?.max_percent_per_hour?.toFixed(
+                    2
+                  )}
+                  %/hr
                 </div>
               </div>
               <div className="bg-slate-800/50 border border-purple-400/20 rounded-lg p-4">
-                <div className="text-purple-300 text-sm font-mono mb-2">POWER CONSUMPTION</div>
-                <div className="text-white font-mono text-sm">
-                  Avg: {dischargeStats.power_consumption?.avg_watts?.toFixed(0)}W
+                <div className="text-purple-300 text-sm font-mono mb-2">
+                  POWER CONSUMPTION
                 </div>
                 <div className="text-white font-mono text-sm">
-                  Range: {dischargeStats.power_consumption?.min_watts?.toFixed(0)} - {dischargeStats.power_consumption?.max_watts?.toFixed(0)}W
+                  Avg: {dischargeStats.power_consumption?.avg_watts?.toFixed(0)}
+                  W
+                </div>
+                <div className="text-white font-mono text-sm">
+                  Range:{" "}
+                  {dischargeStats.power_consumption?.min_watts?.toFixed(0)} -{" "}
+                  {dischargeStats.power_consumption?.max_watts?.toFixed(0)}W
                 </div>
               </div>
               <div className="bg-slate-800/50 border border-purple-400/20 rounded-lg p-4">
-                <div className="text-purple-300 text-sm font-mono mb-2">PREDICTIONS</div>
+                <div className="text-purple-300 text-sm font-mono mb-2">
+                  PREDICTIONS
+                </div>
                 <div className="text-white font-mono text-sm">
-                  Avg Est: {dischargeStats.predictions?.avg_estimated_days?.toFixed(1)} days
+                  Avg Est:{" "}
+                  {dischargeStats.predictions?.avg_estimated_days?.toFixed(1)}{" "}
+                  days
                 </div>
                 <div className="text-white font-mono text-sm">
                   Sessions: {dischargeStats.total_sessions}
@@ -322,13 +364,6 @@ export default function DischargeLog() {
                 DISCHARGE ANALYSIS
               </h4>
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setIsEditDrawerOpen(true)}
-                  className="px-3 py-1 bg-orange-600/50 hover:bg-orange-600 text-orange-300 hover:text-white font-mono text-xs rounded-lg transition-colors duration-200 flex items-center"
-                >
-                  <PencilIcon className="h-4 w-4 mr-1" />
-                  EDIT
-                </button>
                 {/* Time Interval Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -338,7 +373,7 @@ export default function DischargeLog() {
                     {getCurrentIntervalLabel()}
                     <ChevronDownIcon className="h-3 w-3 ml-1" />
                   </button>
-                  
+
                   {isDropdownOpen && (
                     <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-orange-400/30 rounded-lg shadow-lg z-10 min-w-[120px]">
                       {timeIntervalOptions.map((option) => (
@@ -359,7 +394,7 @@ export default function DischargeLog() {
                 </div>
               </div>
             </div>
-            
+
             <div className="text-center py-8">
               <div className="text-orange-300 text-lg font-mono mb-2">
                 NO DISCHARGE DATA YET
@@ -367,26 +402,13 @@ export default function DischargeLog() {
               <div className="text-gray-400 text-sm font-mono mb-4">
                 Discharge logs will appear after initial discharge.
                 <br />
-                You can manually add discharge data using the EDIT button.
+                Use the time interval dropdown to select your preferred logging frequency.
               </div>
-              <button
-                onClick={() => setIsEditDrawerOpen(true)}
-                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-mono rounded-lg transition-colors duration-200 flex items-center mx-auto"
-              >
-                <PencilIcon className="h-5 w-5 mr-2" />
-                ADD DISCHARGE DATA
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Drawer */}
-      <DischargeEditDrawer
-        isOpen={isEditDrawerOpen}
-        onClose={() => setIsEditDrawerOpen(false)}
-        onDataUpdate={refreshAll}
-      />
     </div>
   );
 }
