@@ -68,8 +68,22 @@ export default function Dashboard() {
     );
   }
 
+  // Don't render anything until data is loaded
+  if (loading || !data || Object.keys(data).length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-cyan-400 font-mono text-lg">
+            LOADING DASHBOARD...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // API returns data directly, not wrapped in device name
-  const deviceData = data || {};
+  const deviceData = data;
   const deviceName = "BLUETTI AC200MAX"; // Assuming a single main device for display
 
   // Extract key metrics (property names may vary based on your Bluetti model)
@@ -111,20 +125,6 @@ export default function Dashboard() {
     deviceStatus = "DC Only";
   } else if (acOutputMode !== "STOP") {
     deviceStatus = "AC Active";
-  }
-
-  // Don't render drag and drop system until data is loaded
-  if (loading || !deviceData || Object.keys(deviceData).length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-cyan-400 font-mono text-lg">
-            LOADING DASHBOARD...
-          </div>
-        </div>
-      </div>
-    );
   }
 
   // Define section components
